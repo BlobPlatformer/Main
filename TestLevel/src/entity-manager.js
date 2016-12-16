@@ -142,8 +142,12 @@ EntityManager.prototype.render = function(elapsedTime, ctx) {
 }
 
 function resetPlayer() {
-  this.player.isdead = true;
-  //this.player.position = {x: this.player.position.x - 100, y: 580};
+  //this.player.isdead = true;
+  if (this.player.state == "jump") {
+    this.player.velocity.y = 0;
+    this.player.state = "falling";
+  }
+  this.player.position = {x: this.player.position.x - 100, y: 580};
   this.particles = [];
 }
 

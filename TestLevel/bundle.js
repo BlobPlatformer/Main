@@ -1520,8 +1520,12 @@ EntityManager.prototype.render = function(elapsedTime, ctx) {
 }
 
 function resetPlayer() {
-  this.player.isdead = true;
-  //this.player.position = {x: this.player.position.x - 100, y: 580};
+  //this.player.isdead = true;
+  if (this.player.state == "jump") {
+    this.player.velocity.y = 0;
+    this.player.state = "falling";
+  }
+  this.player.position = {x: this.player.position.x - 100, y: 580};
   this.particles = [];
 }
 
@@ -1842,7 +1846,7 @@ function Player(x,y) {
  * boolean properties: up, left, right, down
  */
 Player.prototype.update = function(elapsedTime, input) {
-  if(!this.isdead){
+  //if(!this.isdead){
   switch (this.state) {
     case "idle":
       this.time += elapsedTime;
@@ -2012,7 +2016,7 @@ Player.prototype.update = function(elapsedTime, input) {
   if(this.position.x > CANVAS_WIDTH+16*700) this.position.x = CANVAS_WIDTH+16*700;
   if(this.position.y < 0) this.position.y = 0;
   if(this.position.y > this.floor) this.position.y = this.floor;
-}
+//}
 }
 
 /**
@@ -2023,7 +2027,7 @@ Player.prototype.update = function(elapsedTime, input) {
  */
 Player.prototype.render = function(elapasedTime, ctx) {
   //ctx.drawImage(this.img, this.redicule.x, this.redicule.y, 32, 32);
-  if(!this.isdead){
+  //if(!this.isdead){
     ctx.drawImage(this.img,
                   this.actualFrame.x * this.frame.source_frame_width,
                   this.actualFrame.y * this.frame.source_frame_height,
@@ -2034,7 +2038,7 @@ Player.prototype.render = function(elapasedTime, ctx) {
                   this.frame.dest_frame_width,
                   this.frame.dest_frame_height
     );
-  }
+  //}
 
 }
 

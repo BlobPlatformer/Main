@@ -248,6 +248,7 @@ function killEnemy(index, enemy) {
   //remove enemy
   e_array.splice(index, 1);
   console.log(e_array.length);
+  this.player.score += 100;
 }
 
 // creates an explosion at a given position with a given color

@@ -22,13 +22,14 @@ module.exports = exports = Particle;
  * @param {int} frameHeight, y-position of the frame in the source image
  * @param {int} frameSize, size (width & height) of the destionation frame
  */
-function Particle(startingPosition, velocity, image, actualFrame, frame) {
+function Particle(startingPosition, velocity, image, actualFrame, frame, type) {
   this.position = startingPosition;
   this.velocity = velocity;
   // TODO
   this.image = image;
   this.frame = frame;
   this.actualFrame = actualFrame;
+  this.type = type;
 }
 
 /**

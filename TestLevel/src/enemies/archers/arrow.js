@@ -28,7 +28,7 @@ function Arrow(position, velocity) {
 
   var actualFrame = {x: (velocity.x < 0)? ARROW_LEFT : ARROW_RIGHT, y: 0};
 
-  Particle.call(this, position, velocity, image, actualFrame, FRAME);
+  Particle.call(this, position, velocity, image, actualFrame, FRAME, "arrow");
 }
 
 /**

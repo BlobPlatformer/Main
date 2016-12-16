@@ -44,6 +44,7 @@ function Player(x,y) {
   this.previousState = "moving";
   this.isdead = false;
   this.health = 100;
+  this.score = 0;
 }
 
 /**

@@ -53,7 +53,7 @@ function Player(x,y) {
  * @param {Input} input object defining input, must have
  * boolean properties: up, left, right, down
  */
-Player.prototype.update = function(elapsedTime, input) {
+Player.prototype.update = function(elapsedTime, input, tiles) {
   //if(!this.isdead){
   switch (this.state) {
     case "idle":
@@ -212,7 +212,8 @@ Player.prototype.update = function(elapsedTime, input) {
 
 
   // move the player
-  this.position.x += this.velocity.x;
+  if(tiles.killDepth(this.position.y)) this.isDead = true;
+  else if(tiles.notBelow(this.position.y))this.position.x += this.velocity.x;
   this.position.y += this.velocity.y;
   if(this.velocity.y < 14)
   {
@@ -220,8 +221,8 @@ Player.prototype.update = function(elapsedTime, input) {
     this.velocity.y += this.gravity.y;
   }
   // keep player on screen
-  if(this.position.x < 0) this.position.x = 0;
-  if(this.position.x > CANVAS_WIDTH+16*700) this.position.x = CANVAS_WIDTH+16*700;
+  if(this.position.x < 160) this.position.x = 160;
+  if(this.position.x > 16*700-160-32) this.position.x = 16*700-160-32;
   if(this.position.y < 0) this.position.y = 0;
   if(this.position.y > this.floor) this.position.y = this.floor;
 //}

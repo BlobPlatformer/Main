@@ -29,7 +29,10 @@ var input = {
   right: false
 }
 var groundHit = false;
+var state = "level"; //levelSelectionScreen: "level", WinScreen: "win", PlayingLevel: "run"
 
+var levelSelect = new Image();
+levelSelect.src = 'assets/LevelSelector.png';
 
 var spritesheet = new Image();
 spritesheet.src = 'assets/blobGameLevelSheet.png';
@@ -62,14 +65,14 @@ var boss = new Boss({x: 1320, y: 200}, tiles);
 var em = new EntityManager(player);
 
 
-em.addBird(bird);
-em.addEnemy(diver);
-em.addEnemy(orc);
-em.addEnemy(skelly);
-em.addEnemy(elfArcher);
-em.addEnemy(orcArcher);
-em.addEnemy(basic_mage);
-em.addEnemy(medium_mage);
+//em.addBird(bird);
+//em.addEnemy(diver);
+//em.addEnemy(orc);
+//em.addEnemy(skelly);
+//em.addEnemy(elfArcher);
+//em.addEnemy(orcArcher);
+//em.addEnemy(basic_mage);
+//em.addEnemy(medium_mage);
 em.addEnemy(boss);
 //em.addEnemy(advanced_mage);
 
@@ -131,6 +134,24 @@ window.onkeyup = function(event) {
       input.right = false;
       event.preventDefault();
       break;
+      case "1":
+    		if(state != "run") {
+    			map = tiles.getMap(1);
+    		}
+    		state = "run"
+    		break;
+    	case "2":
+    		if(state != "run") {
+    			map = tiles.getMap(2);
+    		}
+    		state = "run"
+    		break;
+    	case "3":
+    		if(state != "run") {
+    			map = tiles.getMap(3);
+    		}
+    		state = "run"
+    		break;
   }
 }
 
@@ -161,24 +182,27 @@ masterLoop(performance.now());
  * the number of milliseconds passed since the last frame.
  */
 function update(elapsedTime) {
-  player.update(elapsedTime, input);
+  if(state == "run"){
+    player.update(elapsedTime, input, tiles);
 
-  if(player.velocity.y >= 0) {
-    if(tiles.isFloor(player.position, {height: 32, width: 32}, camera)) {
-      //player.velocity = {x:0,y:0};
-      player.velocity.y = 0;
-      player.floor = (Math.floor((player.position.y+32)/16) * 16)-32;
+    if(player.velocity.y >= 0) {
+      if(tiles.isFloor(player.position, {height: 32, width: 32}, camera)) {
+        //player.velocity = {x:0,y:0};
+        player.velocity.y = 0;
+        player.floor = (Math.floor((player.position.y+32)/16) * 16)-32;
+      }
+      else {
+        player.floor = player.position.y+player.velocity.y+1;
+      }
     }
-    else {
-      player.floor = player.position.y+player.velocity.y+1;
-    }
+    em.birds.forEach(function(bird){
+      bird.floor = player.floor+32;
+    });
+
+    camera.update(player);
+    em.update(elapsedTime);
   }
-  em.birds.forEach(function(bird){
-    bird.floor = player.floor+32;
-  });
 
-  camera.update(player);
-  em.update(elapsedTime);
 }
 
 
@@ -191,27 +215,38 @@ function update(elapsedTime) {
   */
 
 function render(elapsedTime, ctx) {
-  ctx.save();
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  renderBackgrounds(elapsedTime, ctx);
-  /*var row;
-  var col;
-  for(var i=0; i<map.length; i++) {
-    row = i%tiles.getWidth();
-    col = Math.floor(i/tiles.getWidth());
-    if(camera.onScreen({x:row*16,y:col*16}))
-    {
-      ctx.drawImage(
-        spritesheet,
-        spriteArray[map[i]-1].x,spriteArray[map[i]-1].y,16,16,
-        row*16+camera.x,col*16+camera.y,16,16//+camera.y+(16*35),16,16
-        );
-    }
-  }*/
-  renderWorld(elapsedTime, ctx);
-  player.render(elapsedTime, ctx);
-  renderGUI(elapsedTime, ctx);
-  ctx.restore();
+  switch (state){
+    case "run":
+      ctx.save();
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      renderBackgrounds(elapsedTime, ctx);
+      /*var row;
+      var col;
+      for(var i=0; i<map.length; i++) {
+        row = i%tiles.getWidth();
+        col = Math.floor(i/tiles.getWidth());
+        if(camera.onScreen({x:row*16,y:col*16}))
+        {
+          ctx.drawImage(
+            spritesheet,
+            spriteArray[map[i]-1].x,spriteArray[map[i]-1].y,16,16,
+            row*16+camera.x,col*16+camera.y,16,16//+camera.y+(16*35),16,16
+            );
+        }
+      }*/
+      renderWorld(elapsedTime, ctx);
+      player.render(elapsedTime, ctx);
+      ctx.restore();
+      break;
+    case "level":
+      renderLevelSelection(elapsedTime, ctx);
+      break;
+    case "win":
+      renderWinScreen(elapsedTime, ctx);
+      break;
+
+  }
+
 }
 
 function renderBackgrounds(elapsedTime, ctx) {
@@ -220,6 +255,9 @@ function renderBackgrounds(elapsedTime, ctx) {
   var mapwidth = 700;
   var mapWidth = column+(canvas.width/16)+1;
   var mapHeight = row+(canvas.height/16)+1;
+
+
+
 
   ctx.save();
   ctx.translate(-camera.x,-camera.y);
@@ -247,36 +285,17 @@ em.render(elapsedTime, ctx);
 ctx.restore();
 }
 
-function renderGUI(elapsedTime, ctx) {
+function renderWinScreen(elapsedTime, ctx) {
+	renderLevelSelection(elapsedTime, ctx);
+}
+function renderLevelSelection(elapsedTime, ctx) {
+	ctx.drawImage(
+        levelSelect,
+        0,0,1120,800,
+        0,0,1120,800
+      );
+}
 
-  var color; //color of health bar
-  var barHeight = 750;
-  ctx.fillText("Health", 60, barHeight+10);
-  //draw HP background
-  ctx.save();
-  ctx.fillStyle="grey";
-  ctx.fillRect(100, barHeight, 104, 12);
-  ctx.restore();
+function renderGUI() {
 
-  ctx.save();
-  ctx.fillStyle="black";
-  ctx.fillRect(102, barHeight+2, 100, 8);
-  ctx.restore();
-
-  //daw HP forground
-  ctx.save();
-
-  if (60 <= player.health){
-    color = "#4CAF50";//green
-  }
-  else if (30 <= player.health && player.health < 60){
-    color = "yellow";
-  }
-  else{
-    color = "red";
-  }
-  ctx.fillStyle=color;
-  ctx.strokeStyle=color;
-  ctx.fillRect(102, barHeight+2, player.health, 8);
-  ctx.restore();
 }

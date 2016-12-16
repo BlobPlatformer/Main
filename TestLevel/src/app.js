@@ -183,6 +183,13 @@ masterLoop(performance.now());
  */
 function update(elapsedTime) {
   if(state == "run"){
+    if (!player.isdead){
+      setTimeout(null, 1000);
+      return true;
+    }
+    if (player.health <= 0){
+      player.isdead = true;
+    }
     player.update(elapsedTime, input, tiles);
 
     if(player.velocity.y >= 0) {
@@ -236,7 +243,9 @@ function render(elapsedTime, ctx) {
         }
       }*/
       renderWorld(elapsedTime, ctx);
-      player.render(elapsedTime, ctx);
+      if (!player.isdead){
+        player.render(elapsedTime, ctx);
+      }
       ctx.restore();
       renderGUI(elapsedTime, ctx);
       break;

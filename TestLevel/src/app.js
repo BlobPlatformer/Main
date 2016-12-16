@@ -62,14 +62,14 @@ var boss = new Boss({x: 1320, y: 200}, tiles);
 var em = new EntityManager(player);
 
 
-//em.addBird(bird);
-//em.addEnemy(diver);
-//em.addEnemy(orc);
-//em.addEnemy(skelly);
-//em.addEnemy(elfArcher);
-//em.addEnemy(orcArcher);
-//em.addEnemy(basic_mage);
-//em.addEnemy(medium_mage);
+em.addBird(bird);
+em.addEnemy(diver);
+em.addEnemy(orc);
+em.addEnemy(skelly);
+em.addEnemy(elfArcher);
+em.addEnemy(orcArcher);
+em.addEnemy(basic_mage);
+em.addEnemy(medium_mage);
 em.addEnemy(boss);
 //em.addEnemy(advanced_mage);
 

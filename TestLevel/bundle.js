@@ -14,6 +14,10 @@ const Diver = require('./enemies/flying/diver');
 const OrcArcher = require('./enemies/archers/orc-archer');
 const Orc = require('./enemies/melee/orc_basic');
 const Skeleton = require('./enemies/melee/skeleton_basic');
+const MasterMage = require('./enemies/mages/advanced_mage');
+const MediumMage = require('./enemies/mages/medium_mage');
+const BasicMage = require('./enemies/mages/basic_mage');
+const Boss = require('./enemies/boss/boss');
 
 /* Global variables */
 var canvas = document.getElementById('screen');
@@ -52,14 +56,23 @@ var orc = new Orc({x: 600, y: 200}, tiles, camera);
 var skelly = new Skeleton({x: 800, y: 200}, tiles, camera);
 var elfArcher = new ElfArcher({x: 1780, y: 100}, tiles);
 var orcArcher = new OrcArcher({x: 1520, y: 100}, tiles);
+var basic_mage = new BasicMage({x: 1220, y: 200}, tiles);
+var medium_mage = new MediumMage({x: 1320, y: 200}, tiles);
+var advanced_mage = new MasterMage({x: 1520, y: 200}, tiles);
+var boss = new Boss({x: 1320, y: 200}, tiles);
 var em = new EntityManager(player);
 
-em.addBird(bird);
-em.addEnemy(diver);
-em.addEnemy(orc);
-em.addEnemy(skelly);
-em.addEnemy(elfArcher);
-em.addEnemy(orcArcher);
+
+//em.addBird(bird);
+//em.addEnemy(diver);
+//em.addEnemy(orc);
+//em.addEnemy(skelly);
+//em.addEnemy(elfArcher);
+//em.addEnemy(orcArcher);
+//em.addEnemy(basic_mage);
+//em.addEnemy(medium_mage);
+em.addEnemy(boss);
+//em.addEnemy(advanced_mage);
 
 
 /**
@@ -241,7 +254,7 @@ function renderGUI() {
 
 }
 
-},{"./camera":2,"./enemies/archers/elf-archer":5,"./enemies/archers/orc-archer":6,"./enemies/flying/bird":7,"./enemies/flying/diver":9,"./enemies/melee/orc_basic":11,"./enemies/melee/skeleton_basic":12,"./entity-manager":13,"./game":14,"./player":16,"./tiles":18,"./vector":19}],2:[function(require,module,exports){
+},{"./camera":2,"./enemies/archers/elf-archer":5,"./enemies/archers/orc-archer":6,"./enemies/boss/boss":7,"./enemies/flying/bird":8,"./enemies/flying/diver":10,"./enemies/mages/advanced_mage":11,"./enemies/mages/basic_mage":12,"./enemies/mages/medium_mage":14,"./enemies/melee/orc_basic":17,"./enemies/melee/skeleton_basic":18,"./entity-manager":19,"./game":20,"./player":22,"./tiles":24,"./vector":25}],2:[function(require,module,exports){
 "use strict";
 
 /* Classes and Libraries */
@@ -316,7 +329,7 @@ Camera.prototype.toWorldCoordinates = function(screenCoordinates) {
   return Vector.add(screenCoordinates, this);
 }
 
-},{"./tiles":18,"./vector":19}],3:[function(require,module,exports){
+},{"./tiles":24,"./vector":25}],3:[function(require,module,exports){
 "use strict";
 
 /* Classes and Libraries */
@@ -517,7 +530,7 @@ Archer.prototype.render = function(elapasedTime, ctx) {
   );
 }
 
-},{"../../vector":19,"./arrow":4}],4:[function(require,module,exports){
+},{"../../vector":25,"./arrow":4}],4:[function(require,module,exports){
 "use strict";
 
 /* Constants */
@@ -570,7 +583,7 @@ Arrow.prototype.render = function(elapsedTime, ctx) {
   Particle.prototype.render.call(this, elapsedTime, ctx);
 }
 
-},{"../../particle":15}],5:[function(require,module,exports){
+},{"../../particle":21}],5:[function(require,module,exports){
 "use strict";
 
 /* Classes and Libraries */
@@ -706,6 +719,208 @@ OrcArcher.prototype.render = function(elapsedTime, ctx) {
 "use strict";
 
 /* Classes and Libraries */
+const Vector = require('../../vector');
+const Arrow = require('../archers/arrow');
+
+/* Constants */
+const MS_PER_FRAME = 1000/12;
+const LEFT = "l";
+const RIGHT = "r";
+const IDLE_FRAME_MAX_X = 1;
+const WALK_LEFT_FRAME_Y = 9;
+const WALK_LEFT_FRAME_MAX_X = 9;
+const WALK_RIGHT_FRAME_Y = 11;
+const WALK_RIGHT_FRAME_MAX_X = 9;
+const SHOOT_LEFT_FRAME_Y = 17;
+const SHOOT_LEFT_FRAME_MAX_X = 12;
+const SHOOT_RIGHT_FRAME_Y = 19;
+const SHOOT_RIGHT_FRAME_MAX_X = 12;
+const SHOOTING_FRAME = 8;
+const MAX_Y_VELOCITY = 8;
+const CANVAS_HEIGHT = 800;
+const WALKING_RANGE_IN_PX = 1000;
+const WALKING_SPEED_IN_PX = 1.75;
+const SHOOTING_RANGE_IN_PX = 500;
+const SHOOTING_SPEED = 1000/16;
+const FRAME = {source_frame_width: 64,
+               source_frame_height: 64,
+               dest_frame_width: 71,
+               dest_frame_height: 71
+};
+const ARROW = {speed: 7.5, shift: 36};
+
+/**
+ * @module Boss
+ * A class representing an archer enemy
+ */
+module.exports = exports = Boss;
+
+
+/**
+ * @constructor Boss
+ * Base class for enemies which shoot arrows
+ * @param {Object} startingPosition, object containing x and y coords
+ * @param {Int} tiles, checking wheter an archer is standing on the floor
+ */
+function Boss(startingPosition, tiles) {
+  this.position = startingPosition;
+  this.state = "idle";
+  this.direction = LEFT;
+  this.image = new Image();
+  this.image.src = 'assets/img/Sprite_Sheets/boss/boss.png';
+  this.actualFrame = {
+    x: 0,
+    maxX: IDLE_FRAME_MAX_X,
+    y: WALK_LEFT_FRAME_Y // Y frame is the same for WALK and IDLE state
+  };
+  this.frame = FRAME;
+  this.walkingRange = WALKING_RANGE_IN_PX;
+  this.walkingSpeed = WALKING_SPEED_IN_PX;
+  this.shootingRange = SHOOTING_RANGE_IN_PX;
+  this.shootingSpeed = SHOOTING_SPEED;
+  this.arrowsGenerated = 0;
+  this.arrow = ARROW;
+  this.time = MS_PER_FRAME;
+  // Gravity and other stuff
+  this.floor = 16*35; // May be parametrized
+  this.gravity = {x: 0, y: .1};
+  this.velocity = {x: 0, y: 0};
+  this.tiles = tiles;
+  this.life = 5;
+}
+
+/**
+ * @function setFramesAccordingToState
+ * Updates the archer frames based on his state
+ */
+Boss.prototype.setFramesAccordingToState = function() {
+  switch (this.state) {
+    case "idle":
+    case "falling":
+      if(this.direction == LEFT) {
+        this.actualFrame.y = WALK_LEFT_FRAME_Y;
+        this.actualFrame.x = 0;
+        this.actualFrame.maxX = IDLE_FRAME_MAX_X;
+      } else {
+        this.actualFrame.y = WALK_RIGHT_FRAME_Y;
+        this.actualFrame.x = 0;
+        this.actualFrame.maxX = IDLE_FRAME_MAX_X;
+      }
+      break;
+    case "walking":
+      if(this.direction == LEFT) {
+        this.actualFrame.y = WALK_LEFT_FRAME_Y;
+        this.actualFrame.maxX = WALK_LEFT_FRAME_MAX_X;
+      } else {
+        this.actualFrame.y = WALK_RIGHT_FRAME_Y;
+        this.actualFrame.maxX = WALK_RIGHT_FRAME_MAX_X;
+      }
+      break;
+    case "shooting":
+      if(this.direction == LEFT) {
+        this.actualFrame.y = SHOOT_LEFT_FRAME_Y;
+        this.actualFrame.maxX = SHOOT_LEFT_FRAME_MAX_X;
+      } else {
+        this.actualFrame.y = SHOOT_RIGHT_FRAME_Y;
+        this.actualFrame.maxX = SHOOT_RIGHT_FRAME_MAX_X;
+      }
+      break;
+  }
+}
+
+function onFloor() {
+  var frame = {width: this.frame.dest_frame_width, height: this.frame.dest_frame_height};
+
+  if (this.tiles.isFloor(this.position, frame)) {
+    this.velocity.y = 0;
+    this.floor = this.tiles.getFloor(this.position, frame);
+  }
+  else {
+    if(this.velocity.y < MAX_Y_VELOCITY) this.velocity.y += this.gravity.y;
+    this.floor = CANVAS_HEIGHT - 32;
+  }
+}
+
+/**
+ * @function update
+ * Updates the archer enemy based on the supplied input
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {object} playerPosition, object containing x and y coords
+ * @param {object} entityManager, object which maintains all particles
+ */
+Boss.prototype.update = function(elapsedTime, playerPosition, entityManager) {
+  this.time -= elapsedTime;
+
+  // Check if the enemy has landed on the floor
+  onFloor.call(this);
+
+  if(this.state == "walking" && this.velocity.x < this.walkingSpeed) this.velocity.x += .1;
+  this.position.x += (this.direction == LEFT)? -this.velocity.x : this.velocity.x;
+  this.position.y += this.velocity.y;
+
+  if(this.time > 0) return;
+  this.actualFrame.x = (this.actualFrame.x + 1) % this.actualFrame.maxX;
+
+  if(this.state == "shooting") this.time = this.shootingSpeed;
+  else this.time = MS_PER_FRAME;
+
+  var vector = Vector.subtract(playerPosition, this.position);
+  var magnitude = Vector.magnitude(vector);
+
+  if(vector.x <= 0) this.direction = LEFT;
+  else this.direction = RIGHT;
+
+  // This if-else statement sets proper animation frames only
+  if(magnitude > this.walkingRange || Math.abs(vector.y) > 120) {
+    // Player is far away/above/under the archer, stay idle, change frames only
+    this.state = "idle";
+    this.velocity.x = 0;
+    Boss.prototype.setFramesAccordingToState.call(this);
+  }
+  else if (magnitude > this.shootingRange) {
+    // Player has reached the walking distance of the archer
+    // Boss goes towards the player
+    this.state = "walking";
+    Boss.prototype.setFramesAccordingToState.call(this);
+  } else {
+    // Player has reached the shooting distance of the archer
+    // Boss starts shooting towards the player
+    this.state = "shooting";
+    this.velocity.x = 0;
+    Boss.prototype.setFramesAccordingToState.call(this);
+
+    if(this.actualFrame.x == SHOOTING_FRAME) {
+      var arrowVelocity = {x: (this.direction == LEFT)? -this.arrow.speed : this.arrow.speed, y: 0}
+      entityManager.addParticle(new Arrow({x: this.position.x, y: this.position.y + this.arrow.shift}, arrowVelocity));
+      this.arrowsGenerated = this.arrowsGenerated + 1;
+    }
+  }
+
+}
+
+/**
+ * @function render
+ * Renders the archer enemy in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+Boss.prototype.render = function(elapasedTime, ctx) {
+  ctx.drawImage(this.image,
+                this.actualFrame.x * this.frame.source_frame_width,
+                this.actualFrame.y * this.frame.source_frame_height,
+                this.frame.source_frame_width,
+                this.frame.source_frame_height,
+                this.position.x,
+                this.position.y,
+                this.frame.dest_frame_width,
+                this.frame.dest_frame_height
+  );
+}
+
+},{"../../vector":25,"../archers/arrow":4}],8:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
 const Bullets = require('./bullet_pool');
 
 /* Constants */
@@ -806,7 +1021,7 @@ Bird.prototype.render = function(elapasedTime, ctx) {
   ctx.drawImage(this.img, IMAGE_WIDTH*this.frame, IMAGE_HEIGHT*this.frameHeight, IMAGE_WIDTH, IMAGE_HEIGHT, this.position.x, this.position.y, 40, 32);
 }
 
-},{"./bullet_pool":8}],8:[function(require,module,exports){
+},{"./bullet_pool":9}],9:[function(require,module,exports){
 "use strict";
 
 /**
@@ -906,7 +1121,7 @@ BulletPool.prototype.render = function(elapsedTime, ctx) {
   ctx.restore();
 }
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 "use strict";
 
 /* Classes and Libraries */
@@ -1070,7 +1285,501 @@ Diver.prototype.getDivingVelocity = function(){
   this.velocity.y = Math.sin(rad) * ABSOLUTE_VELOCITY * 4;
 }
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+const Mage = require('./mage');
+
+
+/* Constants */
+const WALKING_RANGE_IN_PX = 600;
+const WALKING_SPEED_IN_PX = 1;
+const SHOOTING_RANGE_IN_PX = 350;
+const SHOOTING_SPEED = 1000/13;
+const SPELL_SPEED_IN_PX = 5;
+const SPELL_SHIFT_IN_PX = -37; //Num of pixel to shift the spell down
+const MAXIMUM_SPELLS_GENERATED = 1;
+const FRAME = {source_frame_width: 64,
+               source_frame_height: 64,
+               dest_frame_width: 54,
+               dest_frame_height: 54
+};
+
+/**
+ * @module MasterMage
+ * A class representing an mage enemy
+ */
+module.exports = exports = MasterMage;
+
+
+/**
+ * @constructor MasterMage
+ * Class for an Master mage enemy which shoots spells
+ * @param {Object} startingPosition, object containing x and y coords
+ */
+function MasterMage(startingPosition, tiles) {
+  var image = new Image();
+  image.src = 'assets/img/Sprite_Sheets/mage/master_mage'+ getRandomInt(1,3) +'.png';
+  var spell = {speed: SPELL_SPEED_IN_PX, shift: SPELL_SHIFT_IN_PX};
+  Mage.call(this, startingPosition, image, FRAME, WALKING_RANGE_IN_PX, WALKING_SPEED_IN_PX, SHOOTING_RANGE_IN_PX, SHOOTING_SPEED, spell, tiles, "master");
+}
+
+
+/**
+ * @function update
+ * Updates the Master mage enemy based on the supplied input
+ * @param {DOMHighResTimeStamp} elapedTime
+ * @param {object} playerPosition, object containing x and y coords
+ */
+MasterMage.prototype.update = function(elapsedTime, playerPosition, entityManager) {
+  Mage.prototype.update.call(this, elapsedTime, playerPosition, entityManager);
+  this.spellsGenerated = 0;
+}
+
+/**
+ * @function render
+ * Renders the Master mage enemy in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+MasterMage.prototype.render = function(elapsedTime, ctx) {
+  Mage.prototype.render.call(this, elapsedTime, ctx);
+}
+
+/**
+ * @function getRandomInt
+ * Genrates a random int between the given numbers
+ * @param {min} minimum number that can be generated
+ * @param {max} maximum number that can be generated
+ */
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+},{"./mage":13}],12:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+const Mage = require('./mage');
+
+
+/* Constants */
+const WALKING_RANGE_IN_PX = 600;
+const WALKING_SPEED_IN_PX = 1;
+const SHOOTING_RANGE_IN_PX = 350;
+const SHOOTING_SPEED = 1000/13;
+const SPELL_SPEED_IN_PX = 5;
+const SPELL_SHIFT_IN_PX = 24; //Num of pixel to shift the spell down
+const MAXIMUM_SPELLS_GENERATED = 1;
+const FRAME = {source_frame_width: 64,
+               source_frame_height: 64,
+               dest_frame_width: 54,
+               dest_frame_height: 54
+};
+
+/**
+ * @module BasicMage
+ * A class representing an mage enemy
+ */
+module.exports = exports = BasicMage;
+
+
+/**
+ * @constructor BasicMage
+ * Class for an basic mage enemy which shoots spells
+ * @param {Object} startingPosition, object containing x and y coords
+ */
+function BasicMage(startingPosition, tiles) {
+  var image = new Image();
+  image.src = 'assets/img/Sprite_Sheets/mage/basic_mage'+ getRandomInt(1,9) +'.png';
+  var spell = {speed: SPELL_SPEED_IN_PX, shift: SPELL_SHIFT_IN_PX};
+  Mage.call(this, startingPosition, image, FRAME, WALKING_RANGE_IN_PX, WALKING_SPEED_IN_PX, SHOOTING_RANGE_IN_PX, SHOOTING_SPEED, spell, tiles, "basic");
+}
+
+
+/**
+ * @function update
+ * Updates the basic mage enemy based on the supplied input
+ * @param {DOMHighResTimeStamp} elapedTime
+ * @param {object} playerPosition, object containing x and y coords
+ */
+BasicMage.prototype.update = function(elapsedTime, playerPosition, entityManager) {
+  Mage.prototype.update.call(this, elapsedTime, playerPosition, entityManager);
+  this.spellsGenerated = 0;
+}
+
+/**
+ * @function render
+ * Renders the basic mage enemy in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+BasicMage.prototype.render = function(elapsedTime, ctx) {
+  Mage.prototype.render.call(this, elapsedTime, ctx);
+}
+
+/**
+ * @function getRandomInt
+ * Genrates a random int between the given numbers
+ * @param {min} minimum number that can be generated
+ * @param {max} maximum number that can be generated
+ */
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+},{"./mage":13}],13:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+const Vector = require('../../vector');
+const Spell = require('./spell');
+
+/* Constants */
+const MS_PER_FRAME = 1000/12;
+const LEFT = "l";
+const RIGHT = "r";
+const IDLE_FRAME_MAX_X = 1;
+const WALK_LEFT_FRAME_Y = 9;
+const WALK_LEFT_FRAME_MAX_X = 9;
+const WALK_RIGHT_FRAME_Y = 11;
+const WALK_RIGHT_FRAME_MAX_X = 9;
+const SHOOT_LEFT_FRAME_Y = 1;
+const SHOOT_LEFT_FRAME_MAX_X = 7;
+const SHOOT_RIGHT_FRAME_Y = 3;
+const SHOOT_RIGHT_FRAME_MAX_X = 7;
+const SHOOTING_FRAME = 6;
+const MAX_Y_VELOCITY = 8;
+const CANVAS_HEIGHT = 800;
+const SPELL_CD = 1500;
+
+/**
+ * @module Mage
+ * A class representing a mage enemy
+ */
+module.exports = exports = Mage;
+
+
+/**
+ * @constructor  Mage
+ * Base class for enemies which shoot shoot spells
+ * @param {Object} startingPosition, object containing x and y coords
+ * @param {Image} image, source spritesheet
+ * @param {Object} frame, object containing display properties including width and height
+ * of the source frame (real size in the sprite sheet) and width and height of destination
+ * frame (how it will be really displayed)
+ * @param {Int} walkingRange, distance from which the mage starts moving towards the player
+ * @param {Int} walkingSpeed, speed of walking
+ * @param {Int} shootingRange, distance from which can mage start shooting
+ * @param {Int} shootingSpeed, speed of shooting
+ * @param {Int} spellSpeed, speed of an spell
+ * @param {Int} tiles, checking if a mage is standing on a floor
+ */
+function Mage(startingPosition, image, frame, walkingRange, walkingSpeed, shootingRange, shootingSpeed, spell, tiles, type) {
+  this.position = startingPosition;
+  this.state = "idle";
+  this.direction = LEFT;
+  this.image = image;
+  this.actualFrame = {
+    x: 0,
+    maxX: IDLE_FRAME_MAX_X,
+    y: WALK_LEFT_FRAME_Y // Y frame is the same for WALK and IDLE state
+  };
+  this.frame = frame;
+  this.walkingRange = walkingRange;
+  this.walkingSpeed = walkingSpeed;
+  this.shootingRange = shootingRange;
+  this.shootingSpeed = shootingSpeed;
+  this.spellsGenerated = 0;
+  this.spellCooldown = 0;
+  this.spell = spell;
+  this.time = MS_PER_FRAME;
+  this.type = type;
+  // Gravity and other stuff
+  this.floor = 16*35; // May be parametrized
+  this.gravity = {x: 0, y: .1};
+  this.velocity = {x: 0, y: 0};
+  this.tiles = tiles;
+}
+
+/**
+ * @function setFramesAccordingToState
+ * Updates the mage frames based on his state
+ */
+Mage.prototype.setFramesAccordingToState = function() {
+  switch (this.state) {
+    case "idle":
+    case "falling":
+      if(this.direction == LEFT) {
+        this.actualFrame.y = WALK_LEFT_FRAME_Y;
+        this.actualFrame.x = 0;
+        this.actualFrame.maxX = IDLE_FRAME_MAX_X;
+      } else {
+        this.actualFrame.y = WALK_RIGHT_FRAME_Y;
+        this.actualFrame.x = 0;
+        this.actualFrame.maxX = IDLE_FRAME_MAX_X;
+      }
+      break;
+    case "shooting":
+      if(this.direction == LEFT) {
+        this.actualFrame.y = SHOOT_LEFT_FRAME_Y;
+        this.actualFrame.maxX = SHOOT_LEFT_FRAME_MAX_X;
+      } else {
+        this.actualFrame.y = SHOOT_RIGHT_FRAME_Y;
+        this.actualFrame.maxX = SHOOT_RIGHT_FRAME_MAX_X;
+      }
+      break;
+  }
+}
+
+function onFloor() {
+  var frame = {width: this.frame.dest_frame_width, height: this.frame.dest_frame_height};
+
+  if (this.tiles.isFloor(this.position, frame)) {
+    this.velocity.y = 0;
+    this.floor = this.tiles.getFloor(this.position, frame);
+  }
+  else {
+    if(this.velocity.y < MAX_Y_VELOCITY) this.velocity.y += this.gravity.y;
+    this.floor = CANVAS_HEIGHT - 32;
+  }
+}
+
+/**
+ * @function update
+ * Updates the mage enemy based on the supplied input
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {object} playerPosition, object containing x and y coords
+ * @param {object} entityManager, object which maintains all particles
+ */
+Mage.prototype.update = function(elapsedTime, playerPosition, entityManager) {
+  this.time -= elapsedTime;
+
+  // Check if the enemy has landed or standing on the floor
+  onFloor.call(this);
+  this.position.y += this.velocity.y;
+
+  if(this.time > 0) return;
+  this.actualFrame.x = (this.actualFrame.x + 1) % this.actualFrame.maxX;
+
+  if(this.state == "shooting") this.time = this.shootingSpeed;
+  else this.time = MS_PER_FRAME;
+
+  var vector = Vector.subtract(playerPosition, this.position);
+  var magnitude = Vector.magnitude(vector);
+
+  if(vector.x <= 0) this.direction = LEFT;
+  else this.direction = RIGHT;
+
+  // This if-else statement sets proper animation frames only
+  if(magnitude > this.walkingRange || Math.abs(vector.y) > 120) {
+    // Player is far away/above/under the mage, stay idle, change frames only
+    this.state = "idle";
+    this.velocity.x = 0;
+    Mage.prototype.setFramesAccordingToState.call(this);
+  }
+  else {
+    // Player has reached the shooting distance of the mage
+    // Mage starts shooting towards the player
+    if(this.spellCooldown <= 0)
+    {
+      this.state = "shooting";
+    }
+    else{
+      this.state = "idle";
+    }
+
+    this.velocity.x = 0;
+    Mage.prototype.setFramesAccordingToState.call(this);
+
+    if(this.actualFrame.x == SHOOTING_FRAME && this.spellCooldown <= 0) {
+      var spellVelocity = {x: (this.direction == LEFT)? -this.spell.speed : this.spell.speed, y: 0}
+      entityManager.addParticle(new Spell({x: this.position.x, y: this.position.y + this.spell.shift}, spellVelocity, this.type));
+      this.spellGenerated = this.spellGenerated + 1;
+      this.spellCooldown = SPELL_CD;
+    }
+  }
+  this.spellCooldown -= elapsedTime;
+  //console.log(this.state);
+}
+
+/**
+ * @function render
+ * Renders the mage enemy in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+Mage.prototype.render = function(elapasedTime, ctx) {
+  ctx.drawImage(this.image,
+                this.actualFrame.x * this.frame.source_frame_width,
+                this.actualFrame.y * this.frame.source_frame_height,
+                this.frame.source_frame_width,
+                this.frame.source_frame_height,
+                this.position.x,
+                this.position.y,
+                this.frame.dest_frame_width,
+                this.frame.dest_frame_height
+  );
+}
+
+},{"../../vector":25,"./spell":15}],14:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+const Mage = require('./mage');
+
+
+/* Constants */
+const WALKING_RANGE_IN_PX = 600;
+const WALKING_SPEED_IN_PX = 1;
+const SHOOTING_RANGE_IN_PX = 350;
+const SHOOTING_SPEED = 1000/13;
+const SPELL_SPEED_IN_PX = 5;
+const SPELL_SHIFT_IN_PX = 24; //Num of pixel to shift the spell down
+const MAXIMUM_SPELLS_GENERATED = 1;
+const FRAME = {source_frame_width: 64,
+               source_frame_height: 64,
+               dest_frame_width: 54,
+               dest_frame_height: 54
+};
+
+/**
+ * @module MediumMage
+ * A class representing an mage enemy
+ */
+module.exports = exports = MediumMage;
+
+
+/**
+ * @constructor MediumMage
+ * Class for an medium level mage enemy which shoots spells
+ * @param {Object} startingPosition, object containing x and y coords
+ */
+function MediumMage(startingPosition, tiles) {
+  var image = new Image();
+  image.src = 'assets/img/Sprite_Sheets/mage/medium_mage'+ getRandomInt(1,9) +'.png';
+  var spell = {speed: SPELL_SPEED_IN_PX, shift: SPELL_SHIFT_IN_PX};
+  Mage.call(this, startingPosition, image, FRAME, WALKING_RANGE_IN_PX, WALKING_SPEED_IN_PX, SHOOTING_RANGE_IN_PX, SHOOTING_SPEED, spell, tiles, "med");
+}
+
+
+/**
+ * @function update
+ * Updates the medium mage enemy based on the supplied input
+ * @param {DOMHighResTimeStamp} elapedTime
+ * @param {object} playerPosition, object containing x and y coords
+ */
+MediumMage.prototype.update = function(elapsedTime, playerPosition, entityManager) {
+  Mage.prototype.update.call(this, elapsedTime, playerPosition, entityManager);
+  this.spellsGenerated = 0;
+}
+
+/**
+ * @function render
+ * Renders the medium mage enemy in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+MediumMage.prototype.render = function(elapsedTime, ctx) {
+  Mage.prototype.render.call(this, elapsedTime, ctx);
+}
+
+/**
+ * @function getRandomInt
+ * Genrates a random int between the given numbers
+ * @param {min} minimum number that can be generated
+ * @param {max} maximum number that can be generated
+ */
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+},{"./mage":13}],15:[function(require,module,exports){
+"use strict";
+
+/* Constants */
+const SPELL_LEFT = 0; // Frame position
+const SPELL_RIGHT = 1; // Frame position
+
+/* Classes and Libraries */
+const Particle = require('../../particle');
+
+/**
+ * @module Spell
+ * A class representing a spell
+ */
+module.exports = exports = Spell;
+
+/**
+ * @constructor Spell
+ * Class for a spell fired by mages
+ * @param {postion} starting postion in x, y for spell
+ * @param {velocity} starting velocity off the spell
+ */
+function Spell(position, velocity, type) {
+  var image =  new Image();
+  var frame;
+
+  var actualFrame = {x: (velocity.x < 0)? SPELL_LEFT : SPELL_RIGHT, y: 0};
+  switch(type)
+  {
+    case "basic":
+      frame = {source_frame_width: 18,
+               source_frame_height: 17,
+               dest_frame_width: 18,
+               dest_frame_height: 17};
+       image.src = 'assets/img/Sprite_Sheets/mage/spell_balls.png';
+       break;
+    case "med":
+      frame = {source_frame_width: 42,
+               source_frame_height: 11,
+               dest_frame_width: 105,
+               dest_frame_height: 27};
+               image.src = 'assets/img/Sprite_Sheets/mage/missles.png';
+               break;
+    case "master":
+      frame = {source_frame_width: 42,
+               source_frame_height: 42,
+               dest_frame_width: 126,
+               dest_frame_height: 126};
+               image.src = 'assets/img/Sprite_Sheets/mage/death.png';
+      break;
+
+  }
+
+
+  Particle.call(this, position, velocity, image, actualFrame, frame);
+}
+
+/**
+ * @function update
+ * Updates the spell based on the supplied input
+ * @param {DOMHighResTimeStamp} elapedTime
+ */
+Spell.prototype.update = function(elapsedTime) {
+  Particle.prototype.update.call(this, elapsedTime);
+}
+
+/**
+ * @function render
+ * Renders the spell in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+Spell.prototype.render = function(elapsedTime, ctx) {
+  Particle.prototype.render.call(this, elapsedTime, ctx);
+}
+
+/**
+ * @function getRandomInt
+ * Genrates a random int between the given numbers
+ * @param {min} minimum number that can be generated
+ * @param {max} maximum number that can be generated
+ */
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+},{"../../particle":21}],16:[function(require,module,exports){
 "use strict";
 
 /* Classes and Libraries */
@@ -1276,7 +1985,7 @@ function onFloor(melee) {
   }
 }
 
-},{}],11:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 "use strict";
 
 /* Libraries */
@@ -1326,7 +2035,7 @@ Orc.prototype.stab = function() {
   Melee.prototype.stab.call(this);
 }
 
-},{"./melee.js":10}],12:[function(require,module,exports){
+},{"./melee.js":16}],18:[function(require,module,exports){
 "use strict";
 
 /* Libraries */
@@ -1378,7 +2087,7 @@ Skeleton.prototype.swing = function() {
   Melee.prototype.swing.call(this);
 }
 
-},{"./melee.js":10}],13:[function(require,module,exports){
+},{"./melee.js":16}],19:[function(require,module,exports){
 "use strict";
 
 const LEFT = "left";
@@ -1690,7 +2399,7 @@ function removeParticle(index, particle) {
   p_array.splice(index, 1);
 }
 
-},{"./smoke.js":17,"./vector.js":19}],14:[function(require,module,exports){
+},{"./smoke.js":23,"./vector.js":25}],20:[function(require,module,exports){
 "use strict";
 
 /**
@@ -1748,7 +2457,7 @@ Game.prototype.loop = function(newTime) {
   this.frontCtx.drawImage(this.backBuffer, 0, 0);
 }
 
-},{}],15:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 "use strict";
 
 /* Classes and Libraries */
@@ -1817,7 +2526,7 @@ Particle.prototype.render = function(elapasedTime, ctx) {
   );
 }
 
-},{}],16:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 "use strict";
 
 /* Classes and Libraries */
@@ -2078,7 +2787,7 @@ Player.prototype.jump = function() {
   }
 }
 
-},{}],17:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 "use strict"
 
 module.exports = exports = Smoke;
@@ -2130,7 +2839,7 @@ Smoke.prototype.render = function(time, ctx)
   ctx.restore();
 }
 
-},{}],18:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 module.exports = exports = Tiles;
 
 function Tiles() {
@@ -2197,7 +2906,7 @@ Tiles.prototype.getFloor = function(position, frame) {
 	return (Math.floor((position.y + frame.height)/16) * 16) - frame.height;
 }
 
-},{}],19:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 "use strict";
 
 module.exports = exports = {

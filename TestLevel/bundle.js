@@ -1407,6 +1407,7 @@ function EntityManager(player) {
   this.particles = [];
   this.collectables = [];
   this.smokes = [];
+  this.collisionTime = 0;
 }
 /**
  * @function addEnemy
@@ -1453,7 +1454,7 @@ EntityManager.prototype.addSmoke = function(smoke) {
  * the number of milliseconds passed since the last frame.
  */
 EntityManager.prototype.update = function(elapsedTime) {
-
+  this.collisionTime += elapsedTime;
   // Update enemies
   var self = this;
   this.enemies.forEach(function(enemy) {
@@ -1482,16 +1483,16 @@ EntityManager.prototype.update = function(elapsedTime) {
   })
 
   meleeInteractions(this, this.player);
-  collisions.call(this);
-  poopCollisions(this, this.player);
 
-  // Particles vs. Player collision detection
-  this.particles.sort(function(a,b) {
-    return a.x - b.x;
-  });
-  detectPlayerParticleCollisions.call(this);
-
-  // TODO update collectables
+  if(this.collisionTime > 2000){
+    collisions.call(this);
+    poopCollisions(this, this.player);
+    this.particles.sort(function(a,b) {
+      return a.x - b.x;
+    });
+    detectPlayerParticleCollisions.call(this);
+    this.collisionTime = 0;
+  }
 }
 
 /**
@@ -1503,7 +1504,6 @@ EntityManager.prototype.update = function(elapsedTime) {
  * @param {CanvasRenderingContext2D} ctx the context to render to
  */
 EntityManager.prototype.render = function(elapsedTime, ctx) {
-
   this.enemies.forEach(function(enemy) {
     enemy.render(elapsedTime, ctx);
   });
@@ -1572,6 +1572,8 @@ function poopCollisions(me, player){
           player.position.x < pool.pool[4*i] + pool.bulletRadius &&
           player.position.y + 32 > pool.pool[i*4+1]){
             resetPlayer.call(me, pool.pool[i*4+1]);
+            player.health -= 50;
+            console.log(player.health);
             break;
           }
     }
@@ -1597,10 +1599,6 @@ function collisions() {
         player.position.y < enemy.position.y + enemy.height &&
         player.position.x < enemy.position.x + enemy.width - enemy.hitboxDiff.x &&
         player.position.y + 32 > enemy.position.y + enemy.hitboxDiff.y) {
-          console.log("EnemyX :" + enemy.position.x);
-          console.log("EnemyY : " + (enemy.position.y + enemy.hitboxDiff.y + 14));
-          console.log("PlayerX :" + player.position.x);
-          console.log("PlayerY : " + (player.position.y + 32));
           // player is above enemy
           if (player.position.y + 32 <= enemy.position.y + enemy.hitboxDiff.y + 14) {
             player.velocity.y = -15; player.state = "jump"; player.time = 0;
@@ -1610,7 +1608,8 @@ function collisions() {
             if (enemy.life == 0) {
               killEnemy.call(self, i, enemy); }
             }
-          else { console.log("ResetPlayer"); resetPlayer.call(self, enemy); }
+          //player takes hit
+          else { resetPlayer.call(self, enemy);player.health -= 20;console.log(player.health); }
         }
   })
 }
@@ -1675,6 +1674,8 @@ function detectPlayerParticleCollisions() {
       self.player.position.y + self.player.frame.dest_frame_height < particle.position.y
     )) {
       resetPlayer.call(self, particle);
+      self.player.health -= 30;
+      console.log(self.player.health);
     }
 
   });
@@ -1853,6 +1854,7 @@ function Player(x,y) {
   this.storedF = 0;
   this.previousState = "moving";
   this.isdead = false;
+  this.health = 100;
 }
 
 /**

@@ -215,7 +215,8 @@ function collisions() {
             if (enemy.life == 0) {
               killEnemy.call(self, i, enemy); }
             }
-          else { console.log("ResetPlayer"); resetPlayer.call(self); }
+          //player takes hit
+          else { console.log("ResetPlayer"); resetPlayer.call(self); player.health -= 20; }
         }
   })
 }

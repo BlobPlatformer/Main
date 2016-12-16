@@ -43,6 +43,7 @@ function Player(x,y) {
   this.storedF = 0;
   this.previousState = "moving";
   this.isdead = false;
+  this.health = 100;
 }
 
 /**

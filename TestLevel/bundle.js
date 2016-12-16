@@ -155,12 +155,15 @@ function update(elapsedTime) {
     if(tiles.isFloor(player.position, {height: 32, width: 32}, camera)) {
       //player.velocity = {x:0,y:0};
       player.velocity.y = 0;
-      player.floor = (Math.floor((player.position.y+32)/16) * 16) - 32;
+      player.floor = (Math.floor((player.position.y+32)/16) * 16)-32;
     }
     else {
       player.floor = player.position.y+player.velocity.y+1;
     }
   }
+  em.birds.forEach(function(bird){
+    bird.floor = player.floor+32;
+  });
   // console.log(player.position);
   camera.update(player);
   em.update(elapsedTime);
@@ -727,7 +730,7 @@ function Bird(startingPosition,startendposition) {
   this.end = startendposition.end - 40;
   this.gravity = {x: 0, y: 1};
   this.bulletpool = new Bullets(10);
-  this.floor = 17*35;
+  this.floor = 1456;
   this.velocity = 4;
   this.img = new Image();
   this.img.src = 'assets/img/Sprite_Sheets/greenbird.png';

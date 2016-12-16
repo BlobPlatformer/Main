@@ -26,7 +26,7 @@ function Bird(startingPosition,startendposition) {
   this.end = startendposition.end - 40;
   this.gravity = {x: 0, y: 1};
   this.bulletpool = new Bullets(10);
-  this.floor = 17*35;
+  this.floor = 1456;
   this.velocity = 4;
   this.img = new Image();
   this.img.src = 'assets/img/Sprite_Sheets/greenbird.png';

@@ -22,6 +22,7 @@ const Boss = require('./enemies/boss/boss');
 var canvas = document.getElementById('screen');
 var game = new Game(canvas, update, render);
 var player = new Player(160, 480);
+var win = false;
 var input = {
   up: false,
   down: false,
@@ -52,27 +53,31 @@ var blocks = tiles.getBlocks();
 
 var camera = new Camera(canvas);
 
-var bird = new EnemyBird({x:1, y: 100}, {start: 0, end: canvas.width});
-var diver = new Diver({x:1, y: 100}, {start: 0, end: canvas.width});
-var orc = new Orc({x: 600, y: 200}, tiles, camera);
-var skelly = new Skeleton({x: 800, y: 200}, tiles, camera);
-var elfArcher = new ElfArcher({x: 1780, y: 100}, tiles);
-var orcArcher = new OrcArcher({x: 1520, y: 100}, tiles);
-var basic_mage = new BasicMage({x: 1220, y: 200}, tiles);
-var medium_mage = new MediumMage({x: 1320, y: 200}, tiles);
+var bird = new EnemyBird({x:100, y: 1200}, {start: 0, end: canvas.width});
+var diver = new Diver({x:700, y: 100}, {start: 0, end: canvas.width});
+var orc = new Orc({x: 1600, y: 800}, tiles, camera);
+var orc2 = new Orc({x: 2500, y: 800}, tiles, camera);
+var orc3 = new Orc({x: 8000, y: 800}, tiles, camera);
+var skelly = new Skeleton({x: 2800, y: 800}, tiles, camera);
+var elfArcher = new ElfArcher({x: 5780, y: 100}, tiles);
+var orcArcher = new OrcArcher({x: 10520, y: 100}, tiles);
+var basic_mage = new BasicMage({x: 4220, y: 200}, tiles);
+var medium_mage = new MediumMage({x: 1020, y: 200}, tiles);
 var advanced_mage = new MasterMage({x: 1520, y: 200}, tiles);
-var boss = new Boss({x: 1320, y: 200}, tiles);
+var boss = new Boss({x: 1320, y: 800}, tiles);
 var em = new EntityManager(player);
 
 
-//em.addBird(bird);
-//em.addEnemy(diver);
-//em.addEnemy(orc);
-//em.addEnemy(skelly);
-//em.addEnemy(elfArcher);
-//em.addEnemy(orcArcher);
-//em.addEnemy(basic_mage);
-//em.addEnemy(medium_mage);
+em.addBird(bird);
+em.addEnemy(diver);
+em.addEnemy(orc);
+em.addEnemy(orc2);
+em.addEnemy(orc3);
+em.addEnemy(skelly);
+em.addEnemy(elfArcher);
+em.addEnemy(orcArcher);
+em.addEnemy(basic_mage);
+em.addEnemy(medium_mage);
 em.addEnemy(boss);
 //em.addEnemy(advanced_mage);
 
@@ -183,13 +188,18 @@ masterLoop(performance.now());
  */
 function update(elapsedTime) {
   if(state == "run"){
-    if (!player.isdead){
-      setTimeout(null, 1000);
-      return true;
+    if( player.position.x > 16*700-160-34)
+    {
+        win = true;
+        state = "level";
     }
-    if (player.health <= 0){
-      player.isdead = true;
-    }
+    // if (!player.isdead){
+    //   setTimeout(null, 1000);
+    //   return true;
+    // }
+    // if (player.health <= 0){
+    //   player.isdead = true;
+    // }
     player.update(elapsedTime, input, tiles);
 
     if(player.velocity.y >= 0) {
@@ -209,6 +219,10 @@ function update(elapsedTime) {
     camera.update(player);
     em.update(elapsedTime);
   }
+
+}
+
+function addFoes(){
 
 }
 
@@ -322,6 +336,12 @@ function renderGUI(elapsedTime, ctx) {
     ctx.fillStyle="black";
     ctx.fillRect(102, barHeight+2, 100, 8);
     ctx.restore();
+
+    if(win) {
+        ctx.fillStyle="black";
+        ctx.font = "80px serif"
+        ctx.fillText("Level Complete", 16*700-600 ,1200)
+    }
 
     //daw HP forground
     ctx.save();

@@ -221,8 +221,8 @@ Player.prototype.update = function(elapsedTime, input) {
     this.velocity.y += this.gravity.y;
   }
   // keep player on screen
-  if(this.position.x < 0) this.position.x = 0;
-  if(this.position.x > CANVAS_WIDTH+16*700) this.position.x = CANVAS_WIDTH+16*700;
+  if(this.position.x <= 160) this.position.x = 160;
+  if(this.position.x > 16*700-960) this.position.x = 16*700-960;
   if(this.position.y < 0) this.position.y = 0;
   if(this.position.y > this.floor) this.position.y = this.floor;
 //}

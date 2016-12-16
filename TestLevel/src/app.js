@@ -235,35 +235,33 @@ ctx.restore();
 }
 
 function renderGUI(elapsedTime, ctx) {
-var color; //color of health bar
-//draw HP background
-ctx.save();
-ctx.strokeStyle="black";
-ctx.fillStyle="black";
-ctx.rect(100, 750, 102, 12);
-ctx.fill();
-ctx.stroke();
-ctx.restore();
+  var color; //color of health bar
+  //draw HP background
+  ctx.save();
+  ctx.strokeStyle="black";
+  ctx.fillStyle="black";
+  ctx.rect(100, 750, 102, 12);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
 
 
-//daw HP forground
-ctx.save();
+  //daw HP forground
+  ctx.save();
 
-if (60 < player.health){
-  color = "#4CAF50";//green
-}
-else if (30 < player.health && player.health < 60){
-  color = "yellow";
-}
-else{
-  color = "red";
-}
-ctx.fillStyle=color;
-ctx.strokeStyle=color;
-ctx.rect(100, 752, player.health, 8);
-ctx.fill();
-ctx.stroke();
-ctx.restore();
-
-
+  if (60 < player.health){
+    color = "#4CAF50";//green
+  }
+  else if (30 < player.health && player.health < 60){
+    color = "yellow";
+  }
+  else{
+    color = "red";
+  }
+  ctx.fillStyle=color;
+  ctx.strokeStyle=color;
+  ctx.rect(100, 752, player.health, 8);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
 }

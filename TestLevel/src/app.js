@@ -211,6 +211,7 @@ function renderBackgrounds(elapsedTime, ctx) {
   {
     for(column; column<mapWidth; column++)
     {
+      // ??
       ctx.drawImage(
         spritesheet,
         spriteArray[map[row*mapwidth+column]-1].x,spriteArray[map[row*mapwidth+column]-1].y,16,16,

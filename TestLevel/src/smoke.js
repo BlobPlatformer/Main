@@ -16,9 +16,8 @@ function Smoke (p, r, c)
   this.velocityX = 0;
   this.velocityXY = 0;
   this.scaleSpeed = 0.5;
-  console.log("Creating Smoke at " + this.position.x + " " + this.position.y );
-}
 
+}
 Smoke.prototype.update = function(time)
 {
   //shrink
@@ -33,7 +32,6 @@ Smoke.prototype.update = function(time)
 
 Smoke.prototype.render = function(time, ctx)
 {
-  console.log("Rendering smoke");
   // translating ctx to the particle coords
   ctx.save();
   ctx.translate(this.position.x, this.position.y);

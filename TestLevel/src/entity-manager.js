@@ -142,7 +142,7 @@ EntityManager.prototype.render = function(elapsedTime, ctx) {
 }
 
 function resetPlayer() {
-  this.player.position = {x: 0, y: 200};
+  this.player.position = {x: this.player.position.x - 100, y: 580};
   this.particles = [];
 }
 
@@ -197,17 +197,20 @@ function collisions() {
         player.position.y < enemy.position.y + enemy.height &&
         player.position.x < enemy.position.x + enemy.width - enemy.hitboxDiff.x &&
         player.position.y + 32 > enemy.position.y + enemy.hitboxDiff.y) {
-
+          console.log("EnemyX :" + enemy.position.x);
+          console.log("EnemyY : " + (enemy.position.y + enemy.hitboxDiff.y + 12));
+          console.log("PlayerX :" + player.position.x);
+          console.log("PlayerY : " + (player.position.y + 32));
           // player is above enemy
-          if (player.position.y + 32 <= enemy.position.y + enemy.hitboxDiff.y + 10) {
-            player.velocity.y = -10; player.state = "jump"; player.time = 0;
+          if (player.position.y + 32 <= enemy.position.y + enemy.hitboxDiff.y + 12) {
+            player.velocity.y = -15; player.state = "jump"; player.time = 0;
             if (enemy.life == null) enemy.life = 1;
             enemy.life--;
             // enemy has 0 life -- dead
             if (enemy.life == 0) {
               killEnemy.call(self, i, enemy); }
             }
-          else { resetPlayer.call(self); }
+          else { console.log("ResetPlayer"); resetPlayer.call(self); }
         }
   })
 }
@@ -226,7 +229,7 @@ function killEnemy(index, enemy) {
 
   //remove enemy
   e_array.splice(index, 1);
-
+  console.log(e_array.length);
 }
 
 // creates an explosion at a given position with a given color

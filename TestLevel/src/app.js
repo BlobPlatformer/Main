@@ -163,7 +163,7 @@ function update(elapsedTime) {
   em.birds.forEach(function(bird){
     bird.floor = player.floor+32;
   });
-
+  // console.log(player.position);
   camera.update(player);
   em.update(elapsedTime);
 }
@@ -178,7 +178,6 @@ function update(elapsedTime) {
   */
 
 function render(elapsedTime, ctx) {
-  ctx.save();
   ctx.clearRect(0,0,canvas.width,canvas.height);
   renderBackgrounds(elapsedTime, ctx);
   /*var row;
@@ -198,7 +197,6 @@ function render(elapsedTime, ctx) {
   renderWorld(elapsedTime, ctx);
   player.render(elapsedTime, ctx);
   renderGUI(elapsedTime, ctx);
-  ctx.restore();
 }
 
 //renders background of level
@@ -216,7 +214,7 @@ function renderBackgrounds(elapsedTime, ctx) {
     for(column; column<mapWidth; column++)
     {
       // ??
-
+      //console.log((map[row*mapWidth+column]-1));
       ctx.drawImage(
         spritesheet,
         spriteArray[map[row*mapwidth+column]-1].x,spriteArray[map[row*mapwidth+column]-1].y,16,16,
@@ -250,7 +248,7 @@ function renderGUI(elapsedTime, ctx) {
 
   //daw HP forground
   ctx.save();
-
+  console.log(player.health);
   if (60 < player.health){
     color = "#4CAF50";//green
   }

@@ -189,14 +189,11 @@ function poopCollisions(me, player){
       if (player.position.x + 32 > pool.pool[4*i] &&
           player.position.y < pool.pool[i*4+1] + pool.bulletRadius &&
           player.position.x < pool.pool[4*i] + pool.bulletRadius &&
-          player.position.y + 32 > pool.pool[i*4+1]){
-<<<<<<< HEAD
-            resetPlayer.call(me, pool.pool[i*4+1]);
+          player.position.y + 32 > pool.pool[i*4+1]);
+
             player.health -= 50;
             console.log(player.health);
-=======
             resetPlayer.call(me, {x: pool.pool[4*i], y: pool.pool[4*i+1]});
->>>>>>> c
             break;
           }
     }
@@ -222,10 +219,6 @@ function collisions() {
         player.position.y < enemy.position.y + enemy.height &&
         player.position.x < enemy.position.x + enemy.width - enemy.hitboxDiff.x &&
         player.position.y + 32 > enemy.position.y + enemy.hitboxDiff.y) {
-<<<<<<< HEAD
-=======
-
->>>>>>> c
           // player is above enemy
           if (player.position.y + 32 <= enemy.position.y + enemy.hitboxDiff.y + 14) {
             player.velocity.y = -15; player.state = "jump"; player.time = 0;
@@ -236,11 +229,7 @@ function collisions() {
               killEnemy.call(self, i, enemy); }
             }
           //player takes hit
-<<<<<<< HEAD
-          else { resetPlayer.call(self, enemy);player.health -= 20;console.log(player.health); }
-=======
           else { resetPlayer.call(self, enemy.position); player.health -= 20; }
->>>>>>> c
         }
   })
 }
@@ -260,6 +249,7 @@ function killEnemy(index, enemy) {
   //remove enemy
   e_array.splice(index, 1);
 
+  this.player.score += 100;
 }
 
 // creates an explosion at a given position with a given color
@@ -303,11 +293,9 @@ function detectPlayerParticleCollisions() {
       self.player.position.y > particle.position.y + particle.frame.dest_frame_height ||
       self.player.position.y + self.player.frame.dest_frame_height < particle.position.y
     )) {
-<<<<<<< HEAD
-      resetPlayer.call(self, particle);
+
       self.player.health -= 30;
-      console.log(self.player.health);
-=======
+
       // player is above enemy
       if (self.player.position.y + 32 <= particle.position.y + 10) {
         self.player.velocity.y = -15; self.player.state = "jump"; self.player.time = 0;
@@ -315,7 +303,6 @@ function detectPlayerParticleCollisions() {
         }
       //player takes hit
       else { resetPlayer.call(self, particle.position); self.player.health -= 20; }
->>>>>>> c
     }
 
   });

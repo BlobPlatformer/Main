@@ -21,11 +21,11 @@ module.exports = exports = Spell;
  */
 function Spell(position, velocity, type) {
   var image =  new Image();
- 
+
   var actualFrame = {x: (velocity.x < 0)? SPELL_LEFT : SPELL_RIGHT, y: 0};
   switch(type)
   {
-    case "basic": 
+    case "basic":
       var frame = {source_frame_width: 18,
                source_frame_height: 17,
                dest_frame_width: 18,
@@ -48,9 +48,9 @@ function Spell(position, velocity, type) {
       break;
 
   }
- 
-  
-  Particle.call(this, position, velocity, image, actualFrame, frame);
+
+
+  Particle.call(this, position, velocity, image, actualFrame, frame, "spell");
 }
 
 /**

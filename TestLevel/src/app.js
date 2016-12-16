@@ -13,6 +13,10 @@ const Diver = require('./enemies/flying/diver');
 const OrcArcher = require('./enemies/archers/orc-archer');
 const Orc = require('./enemies/melee/orc_basic');
 const Skeleton = require('./enemies/melee/skeleton_basic');
+const MasterMage = require('./enemies/mages/advanced_mage');
+const MediumMage = require('./enemies/mages/medium_mage');
+const BasicMage = require('./enemies/mages/basic_mage');
+const Boss = require('./enemies/boss/boss');
 
 /* Global variables */
 var canvas = document.getElementById('screen');
@@ -51,14 +55,23 @@ var orc = new Orc({x: 600, y: 200}, tiles, camera);
 var skelly = new Skeleton({x: 800, y: 200}, tiles, camera);
 var elfArcher = new ElfArcher({x: 1780, y: 100}, tiles);
 var orcArcher = new OrcArcher({x: 1520, y: 100}, tiles);
+var basic_mage = new BasicMage({x: 1220, y: 200}, tiles);
+var medium_mage = new MediumMage({x: 1320, y: 200}, tiles);
+var advanced_mage = new MasterMage({x: 1520, y: 200}, tiles);
+var boss = new Boss({x: 1320, y: 200}, tiles);
 var em = new EntityManager(player);
 
-em.addBird(bird);
-em.addEnemy(diver);
-em.addEnemy(orc);
-em.addEnemy(skelly);
-em.addEnemy(elfArcher);
-em.addEnemy(orcArcher);
+
+//em.addBird(bird);
+//em.addEnemy(diver);
+//em.addEnemy(orc);
+//em.addEnemy(skelly);
+//em.addEnemy(elfArcher);
+//em.addEnemy(orcArcher);
+//em.addEnemy(basic_mage);
+//em.addEnemy(medium_mage);
+em.addEnemy(boss);
+//em.addEnemy(advanced_mage);
 
 
 /**

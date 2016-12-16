@@ -197,6 +197,7 @@ function render(elapsedTime, ctx) {
   }*/
   renderWorld(elapsedTime, ctx);
   player.render(elapsedTime, ctx);
+  renderGUI(elapsedTime, ctx);
   ctx.restore();
 }
 
@@ -206,9 +207,6 @@ function renderBackgrounds(elapsedTime, ctx) {
   var mapwidth = 700;
   var mapWidth = column+(canvas.width/16)+1;
   var mapHeight = row+(canvas.height/16)+1;
-
-
-
 
   ctx.save();
   ctx.translate(-camera.x,-camera.y);
@@ -236,6 +234,33 @@ em.render(elapsedTime, ctx);
 ctx.restore();
 }
 
-function renderGUI() {
+function renderGUI(elapsedTime, ctx) {
 
+  var color; //color of health bar
+  var barHeight = 750;
+  ctx.fillText("Health", 60, barHeight+10);
+  //draw HP background
+  ctx.save();
+  ctx.strokeStyle="black";
+  ctx.fillStyle="black";
+  ctx.fillRect(100, barHeight, 104, 12);
+  ctx.restore();
+
+
+  //daw HP forground
+  ctx.save();
+
+  if (60 <= player.health){
+    color = "#4CAF50";//green
+  }
+  else if (30 <= player.health && player.health < 60){
+    color = "yellow";
+  }
+  else{
+    color = "red";
+  }
+  ctx.fillStyle=color;
+  ctx.strokeStyle=color;
+  ctx.fillRect(102, barHeight+2, player.health, 8);
+  ctx.restore();
 }

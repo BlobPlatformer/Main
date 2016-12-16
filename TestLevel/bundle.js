@@ -23,6 +23,7 @@ const Boss = require('./enemies/boss/boss');
 var canvas = document.getElementById('screen');
 var game = new Game(canvas, update, render);
 var player = new Player(160, 480);
+var win = false;
 var input = {
   up: false,
   down: false,
@@ -53,27 +54,31 @@ var blocks = tiles.getBlocks();
 
 var camera = new Camera(canvas);
 
-var bird = new EnemyBird({x:1, y: 100}, {start: 0, end: canvas.width});
-var diver = new Diver({x:1, y: 100}, {start: 0, end: canvas.width});
-var orc = new Orc({x: 600, y: 200}, tiles, camera);
-var skelly = new Skeleton({x: 800, y: 200}, tiles, camera);
-var elfArcher = new ElfArcher({x: 1780, y: 100}, tiles);
-var orcArcher = new OrcArcher({x: 1520, y: 100}, tiles);
-var basic_mage = new BasicMage({x: 1220, y: 200}, tiles);
-var medium_mage = new MediumMage({x: 1320, y: 200}, tiles);
+var bird = new EnemyBird({x:100, y: 1200}, {start: 0, end: canvas.width});
+var diver = new Diver({x:700, y: 100}, {start: 0, end: canvas.width});
+var orc = new Orc({x: 1600, y: 800}, tiles, camera);
+var orc2 = new Orc({x: 2500, y: 800}, tiles, camera);
+var orc3 = new Orc({x: 8000, y: 800}, tiles, camera);
+var skelly = new Skeleton({x: 2800, y: 800}, tiles, camera);
+var elfArcher = new ElfArcher({x: 5780, y: 100}, tiles);
+var orcArcher = new OrcArcher({x: 10520, y: 100}, tiles);
+var basic_mage = new BasicMage({x: 4220, y: 200}, tiles);
+var medium_mage = new MediumMage({x: 1020, y: 200}, tiles);
 var advanced_mage = new MasterMage({x: 1520, y: 200}, tiles);
-var boss = new Boss({x: 1320, y: 200}, tiles);
+var boss = new Boss({x: 1320, y: 800}, tiles);
 var em = new EntityManager(player);
 
 
-//em.addBird(bird);
-//em.addEnemy(diver);
-//em.addEnemy(orc);
-//em.addEnemy(skelly);
-//em.addEnemy(elfArcher);
-//em.addEnemy(orcArcher);
-//em.addEnemy(basic_mage);
-//em.addEnemy(medium_mage);
+em.addBird(bird);
+em.addEnemy(diver);
+em.addEnemy(orc);
+em.addEnemy(orc2);
+em.addEnemy(orc3);
+em.addEnemy(skelly);
+em.addEnemy(elfArcher);
+em.addEnemy(orcArcher);
+em.addEnemy(basic_mage);
+em.addEnemy(medium_mage);
 em.addEnemy(boss);
 //em.addEnemy(advanced_mage);
 
@@ -184,13 +189,18 @@ masterLoop(performance.now());
  */
 function update(elapsedTime) {
   if(state == "run"){
-    if (!player.isdead){
-      setTimeout(null, 1000);
-      return true;
+    if( player.position.x > 16*700-160-34)
+    {
+        win = true;
+        state = "level";
     }
-    if (player.health <= 0){
-      player.isdead = true;
-    }
+    // if (!player.isdead){
+    //   setTimeout(null, 1000);
+    //   return true;
+    // }
+    // if (player.health <= 0){
+    //   player.isdead = true;
+    // }
     player.update(elapsedTime, input, tiles);
 
     if(player.velocity.y >= 0) {
@@ -210,6 +220,10 @@ function update(elapsedTime) {
     camera.update(player);
     em.update(elapsedTime);
   }
+
+}
+
+function addFoes(){
 
 }
 
@@ -323,6 +337,12 @@ function renderGUI(elapsedTime, ctx) {
     ctx.fillStyle="black";
     ctx.fillRect(102, barHeight+2, 100, 8);
     ctx.restore();
+
+    if(win) {
+        ctx.fillStyle="black";
+        ctx.font = "80px serif"
+        ctx.fillText("Level Complete", 16*700-600 ,1200)
+    }
 
     //daw HP forground
     ctx.save();
@@ -649,7 +669,7 @@ function Arrow(position, velocity) {
 
   var actualFrame = {x: (velocity.x < 0)? ARROW_LEFT : ARROW_RIGHT, y: 0};
 
-  Particle.call(this, position, velocity, image, actualFrame, FRAME);
+  Particle.call(this, position, velocity, image, actualFrame, FRAME, "arrow");
 }
 
 /**
@@ -2204,6 +2224,7 @@ function EntityManager(player) {
   this.particles = [];
   this.collectables = [];
   this.smokes = [];
+  this.collisionTime = 0;
 }
 /**
  * @function addEnemy
@@ -2250,7 +2271,7 @@ EntityManager.prototype.addSmoke = function(smoke) {
  * the number of milliseconds passed since the last frame.
  */
 EntityManager.prototype.update = function(elapsedTime) {
-
+  this.collisionTime += elapsedTime;
   // Update enemies
   var self = this;
   this.enemies.forEach(function(enemy) {
@@ -2279,16 +2300,16 @@ EntityManager.prototype.update = function(elapsedTime) {
   })
 
   meleeInteractions(this, this.player);
-  collisions.call(this);
-  poopCollisions(this, this.player);
 
-  // Particles vs. Player collision detection
-  this.particles.sort(function(a,b) {
-    return a.x - b.x;
-  });
-  detectPlayerParticleCollisions.call(this);
-
-  // TODO update collectables
+  if(this.collisionTime > 2000){
+    collisions.call(this);
+    poopCollisions(this, this.player);
+    this.particles.sort(function(a,b) {
+      return a.x - b.x;
+    });
+    detectPlayerParticleCollisions.call(this);
+    this.collisionTime = 0;
+  }
 }
 
 /**
@@ -2300,7 +2321,6 @@ EntityManager.prototype.update = function(elapsedTime) {
  * @param {CanvasRenderingContext2D} ctx the context to render to
  */
 EntityManager.prototype.render = function(elapsedTime, ctx) {
-
   this.enemies.forEach(function(enemy) {
     enemy.render(elapsedTime, ctx);
   });
@@ -2361,19 +2381,22 @@ function meleeInteractions(me, player) {
 }
 
 function poopCollisions(me, player){
-  me.birds.forEach(function(bird){
+  me.birds.forEach(function(bird) {
     var pool = bird.bulletpool;
-    for(var i = 0; i < pool.end; i ++){
-      if (player.position.x + 32 > pool.pool[4*i] &&
-          player.position.y < pool.pool[i*4+1] + pool.bulletRadius &&
-          player.position.x < pool.pool[4*i] + pool.bulletRadius &&
-          player.position.y + 32 > pool.pool[i*4+1]){
-            resetPlayer.call(me, {x: pool.pool[4*i], y: pool.pool[4*i+1]});
-            break;
-          }
+    for (var i = 0; i < pool.end; i++) {
+      if (player.position.x + 32 > pool.pool[4 * i] &&
+          player.position.y < pool.pool[i * 4 + 1] + pool.bulletRadius &&
+          player.position.x < pool.pool[4 * i] + pool.bulletRadius &&
+          player.position.y + 32 > pool.pool[i * 4 + 1]);
+
+      player.health -= 50;
+      console.log(player.health);
+      resetPlayer.call(me, {x: pool.pool[4 * i], y: pool.pool[4 * i + 1]});
+      break;
     }
   })
 }
+
 
 function collisions() {
   var self = this;
@@ -2394,7 +2417,6 @@ function collisions() {
         player.position.y < enemy.position.y + enemy.height &&
         player.position.x < enemy.position.x + enemy.width - enemy.hitboxDiff.x &&
         player.position.y + 32 > enemy.position.y + enemy.hitboxDiff.y) {
-
           // player is above enemy
           if (player.position.y + 32 <= enemy.position.y + enemy.hitboxDiff.y + 14) {
             player.velocity.y = -15; player.state = "jump"; player.time = 0;
@@ -2425,6 +2447,7 @@ function killEnemy(index, enemy) {
   //remove enemy
   e_array.splice(index, 1);
 
+  this.player.score += 100;
 }
 
 // creates an explosion at a given position with a given color
@@ -2468,6 +2491,9 @@ function detectPlayerParticleCollisions() {
       self.player.position.y > particle.position.y + particle.frame.dest_frame_height ||
       self.player.position.y + self.player.frame.dest_frame_height < particle.position.y
     )) {
+
+      self.player.health -= 30;
+
       // player is above enemy
       if (self.player.position.y + 32 <= particle.position.y + 10) {
         self.player.velocity.y = -15; self.player.state = "jump"; self.player.time = 0;
@@ -2570,13 +2596,14 @@ module.exports = exports = Particle;
  * @param {int} frameHeight, y-position of the frame in the source image
  * @param {int} frameSize, size (width & height) of the destionation frame
  */
-function Particle(startingPosition, velocity, image, actualFrame, frame) {
+function Particle(startingPosition, velocity, image, actualFrame, frame, type) {
   this.position = startingPosition;
   this.velocity = velocity;
   // TODO
   this.image = image;
   this.frame = frame;
   this.actualFrame = actualFrame;
+  this.type = type;
 }
 
 /**
@@ -2839,7 +2866,7 @@ Player.prototype.update = function(elapsedTime, input, tiles) {
   }
   // keep player on screen
   if(this.position.x < 160) this.position.x = 160;
-  if(this.position.x > 16*700-160-32) this.position.x = 16*700-160-32;
+  if(this.position.x > 16*700-160-32) this.position.x = 16*700-160-32; 
   if(this.position.y < 0) this.position.y = 0;
   if(this.position.y > this.floor) this.position.y = this.floor;
 //}

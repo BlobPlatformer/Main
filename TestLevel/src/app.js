@@ -196,17 +196,16 @@ function render(elapsedTime, ctx) {
   }*/
   renderWorld(elapsedTime, ctx);
   player.render(elapsedTime, ctx);
+  renderGUI(elapsedTime, ctx);
 }
 
+//renders background of level
 function renderBackgrounds(elapsedTime, ctx) {
   var column = Math.floor(camera.x/16);
   var row = Math.floor(camera.y/16);
   var mapwidth = 700;
   var mapWidth = column+(canvas.width/16)+1;
   var mapHeight = row+(canvas.height/16)+1;
-
-
-
 
   ctx.save();
   ctx.translate(-camera.x,-camera.y);
@@ -227,6 +226,7 @@ function renderBackgrounds(elapsedTime, ctx) {
   ctx.restore();
 }
 
+//really a bug fix... but just leave this alone unless absoultley necessary
 function renderWorld(elapsedTime, ctx) {
 ctx.save();
 ctx.translate(-camera.x, -camera.y);
@@ -234,6 +234,36 @@ em.render(elapsedTime, ctx);
 ctx.restore();
 }
 
-function renderGUI() {
+function renderGUI(elapsedTime, ctx) {
+var color; //color of health bar
+//draw HP background
+ctx.save();
+ctx.strokeStyle="black";
+ctx.fillStyle="black";
+ctx.rect(100, 750, 102, 12);
+ctx.fill();
+ctx.stroke();
+ctx.restore();
+
+
+//daw HP forground
+ctx.save();
+
+if (60 < player.health){
+  color = "#4CAF50";//green
+}
+else if (30 < player.health && player.health < 60){
+  color = "yellow";
+}
+else{
+  color = "red";
+}
+ctx.fillStyle=color;
+ctx.strokeStyle=color;
+ctx.rect(100, 752, player.health, 8);
+ctx.fill();
+ctx.stroke();
+ctx.restore();
+
 
 }

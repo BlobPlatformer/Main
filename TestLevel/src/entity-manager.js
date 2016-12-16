@@ -183,22 +183,22 @@ function meleeInteractions(me, player) {
 }
 
 function poopCollisions(me, player){
-  me.birds.forEach(function(bird){
+  me.birds.forEach(function(bird) {
     var pool = bird.bulletpool;
-    for(var i = 0; i < pool.end; i ++){
-      if (player.position.x + 32 > pool.pool[4*i] &&
-          player.position.y < pool.pool[i*4+1] + pool.bulletRadius &&
-          player.position.x < pool.pool[4*i] + pool.bulletRadius &&
-          player.position.y + 32 > pool.pool[i*4+1]);
+    for (var i = 0; i < pool.end; i++) {
+      if (player.position.x + 32 > pool.pool[4 * i] &&
+          player.position.y < pool.pool[i * 4 + 1] + pool.bulletRadius &&
+          player.position.x < pool.pool[4 * i] + pool.bulletRadius &&
+          player.position.y + 32 > pool.pool[i * 4 + 1]);
 
-            player.health -= 50;
-            console.log(player.health);
-            resetPlayer.call(me, {x: pool.pool[4*i], y: pool.pool[4*i+1]});
-            break;
-          }
+      player.health -= 50;
+      console.log(player.health);
+      resetPlayer.call(me, {x: pool.pool[4 * i], y: pool.pool[4 * i + 1]});
+      break;
     }
   })
 }
+
 
 function collisions() {
   var self = this;

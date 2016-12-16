@@ -227,7 +227,7 @@ function collisions() {
               killEnemy.call(self, i, enemy); }
             }
           //player takes hit
-          else { resetPlayer.call(self, enemy.position); player.health -= 20; }
+          else { resetPlayer.call(self, enemy.position); player.health -= 20;}
         }
   })
 }

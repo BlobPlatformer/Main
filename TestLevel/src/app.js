@@ -241,11 +241,14 @@ function renderGUI(elapsedTime, ctx) {
   ctx.fillText("Health", 60, barHeight+10);
   //draw HP background
   ctx.save();
-  ctx.strokeStyle="black";
-  ctx.fillStyle="black";
+  ctx.fillStyle="grey";
   ctx.fillRect(100, barHeight, 104, 12);
   ctx.restore();
 
+  ctx.save();
+  ctx.fillStyle="black";
+  ctx.fillRect(102, barHeight+2, 100, 8);
+  ctx.restore();
 
   //daw HP forground
   ctx.save();

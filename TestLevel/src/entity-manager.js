@@ -142,7 +142,8 @@ EntityManager.prototype.render = function(elapsedTime, ctx) {
 }
 
 function resetPlayer() {
-  this.player.position = {x: this.player.position.x - 100, y: 580};
+  this.player.isdead = true;
+  //this.player.position = {x: this.player.position.x - 100, y: 580};
   this.particles = [];
 }
 

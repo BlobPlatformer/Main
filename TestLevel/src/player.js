@@ -42,6 +42,7 @@ function Player(x,y) {
   this.storedFH = 0;
   this.storedF = 0;
   this.previousState = "moving";
+  this.isdead = false;
 }
 
 /**
@@ -52,6 +53,7 @@ function Player(x,y) {
  * boolean properties: up, left, right, down
  */
 Player.prototype.update = function(elapsedTime, input) {
+  if(!this.isdead){
   switch (this.state) {
     case "idle":
       this.time += elapsedTime;
@@ -222,6 +224,7 @@ Player.prototype.update = function(elapsedTime, input) {
   if(this.position.y < 0) this.position.y = 0;
   if(this.position.y > this.floor) this.position.y = this.floor;
 }
+}
 
 /**
  * @function render
@@ -231,16 +234,19 @@ Player.prototype.update = function(elapsedTime, input) {
  */
 Player.prototype.render = function(elapasedTime, ctx) {
   //ctx.drawImage(this.img, this.redicule.x, this.redicule.y, 32, 32);
-  ctx.drawImage(this.img,
-                this.actualFrame.x * this.frame.source_frame_width,
-                this.actualFrame.y * this.frame.source_frame_height,
-                this.frame.source_frame_width,
-                this.frame.source_frame_height,
-                this.redicule.x,
-                this.redicule.y,
-                this.frame.dest_frame_width,
-                this.frame.dest_frame_height
-  );
+  if(!this.isdead){
+    ctx.drawImage(this.img,
+                  this.actualFrame.x * this.frame.source_frame_width,
+                  this.actualFrame.y * this.frame.source_frame_height,
+                  this.frame.source_frame_width,
+                  this.frame.source_frame_height,
+                  this.redicule.x,
+                  this.redicule.y,
+                  this.frame.dest_frame_width,
+                  this.frame.dest_frame_height
+    );
+  }
+
 }
 
 Player.prototype.jump = function() {

@@ -190,8 +190,8 @@ function render(elapsedTime, ctx) {
         );
     }
   }*/
+  renderWorld();
   player.render(elapsedTime, ctx);
-  em.render(elapsedTime, ctx);
 }
 
 function renderBackgrounds(elapsedTime, ctx) {
@@ -222,7 +222,10 @@ function renderBackgrounds(elapsedTime, ctx) {
 }
 
 function renderWorld() {
-
+ctx.save();
+ctx.translate(-camera.x, -camera.y);
+em.render(elapsedTime, ctx);
+ctx.restore();
 }
 
 function renderGUI() {

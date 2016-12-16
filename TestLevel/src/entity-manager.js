@@ -141,7 +141,7 @@ EntityManager.prototype.render = function(elapsedTime, ctx) {
   // TODO render collectables
 }
 
-function resetPlayer(e) {
+function resetPlayer(p) {
   // player bounces down
   if (this.player.state == "jump") {
     smoke.call(this, this.player.position, "green");
@@ -150,16 +150,16 @@ function resetPlayer(e) {
   }
   else {
     // player bounces to the left
-    if (this.player.position.x < e.position.x ) {
-      smoke.call(this, {x: this.player.position.x + 32, y: this.player.position.y}, "green");
-      this.player.position = {x: this.player.position.x - 20, y: this.player.position.y};
-      this.player.velocity.x = {x: this.player.velocity.x - 5, y: this.player.velocity.y};
+    if (this.player.position.x < p.x ) {
+      smoke.call(this, {x: (this.player.position.x + 32), y: this.player.position.y}, "green");
+      this.player.position.x -= 20;
+      this.player.velocity.x -= 15;
     }
     // player bounces to the right
     else {
       smoke.call(this, this.player.position, "green");
-      this.player.positiion = {x: this.player.position.x + 20, y: this.player.position.y};
-      this.player.velocity.x = {x: this.player.velocity.x + 5, y: this.player.velocity.y};
+      this.player.position.x += 52;
+      this.player.velocity.x += 15;
     }
   }
   this.particles = [];
@@ -190,7 +190,7 @@ function poopCollisions(me, player){
           player.position.y < pool.pool[i*4+1] + pool.bulletRadius &&
           player.position.x < pool.pool[4*i] + pool.bulletRadius &&
           player.position.y + 32 > pool.pool[i*4+1]){
-            resetPlayer.call(me, pool.pool[i*4+1]);
+            resetPlayer.call(me, {x: pool.pool[4*i], y: pool.pool[4*i+1]});
             break;
           }
     }
@@ -216,10 +216,7 @@ function collisions() {
         player.position.y < enemy.position.y + enemy.height &&
         player.position.x < enemy.position.x + enemy.width - enemy.hitboxDiff.x &&
         player.position.y + 32 > enemy.position.y + enemy.hitboxDiff.y) {
-          console.log("EnemyX :" + enemy.position.x);
-          console.log("EnemyY : " + (enemy.position.y + enemy.hitboxDiff.y + 14));
-          console.log("PlayerX :" + player.position.x);
-          console.log("PlayerY : " + (player.position.y + 32));
+
           // player is above enemy
           if (player.position.y + 32 <= enemy.position.y + enemy.hitboxDiff.y + 14) {
             player.velocity.y = -15; player.state = "jump"; player.time = 0;
@@ -230,8 +227,7 @@ function collisions() {
               killEnemy.call(self, i, enemy); }
             }
           //player takes hit
-          else { console.log("ResetPlayer"); resetPlayer.call(self); player.health -= 20; }
-          else { console.log("ResetPlayer"); resetPlayer.call(self, enemy); }
+          else { resetPlayer.call(self, enemy.position); player.health -= 20; }
         }
   })
 }
@@ -250,7 +246,7 @@ function killEnemy(index, enemy) {
 
   //remove enemy
   e_array.splice(index, 1);
-  console.log(e_array.length);
+
 }
 
 // creates an explosion at a given position with a given color
@@ -283,20 +279,32 @@ function smoke(position, color)
 
 function detectPlayerParticleCollisions() {
   var self = this;
-  this.particles.forEach(function(particle){
+  this.particles.forEach(function(particle, i){
     // If the distance between player and particle is greater than player width
     // we can be sure that there is no collision
     // else we may have a rectangular collision
     if(Vector.magnitude(Vector.subtract(self.player.position, particle.position)) > self.player.frame.dest_frame_width) return;
-    //console.log("potential collision");
     if(!(
       self.player.position.x > particle.position.x + particle.frame.dest_frame_width ||
       self.player.position.x + self.player.frame.dest_frame_width < particle.position.x ||
       self.player.position.y > particle.position.y + particle.frame.dest_frame_height ||
       self.player.position.y + self.player.frame.dest_frame_height < particle.position.y
     )) {
-      resetPlayer.call(self, particle);
+      // player is above enemy
+      if (self.player.position.y + 32 <= particle.position.y + 10) {
+        self.player.velocity.y = -15; self.player.state = "jump"; self.player.time = 0;
+          removeParticle.call(self, i, particle);
+        }
+      //player takes hit
+      else { resetPlayer.call(self, particle.position); self.player.health -= 20; }
     }
 
   });
+}
+
+function removeParticle(index, particle) {
+  console.log(this);
+  var p_array = this.particles;
+
+  p_array.splice(index, 1);
 }

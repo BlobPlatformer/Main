@@ -164,7 +164,7 @@ function update(elapsedTime) {
   em.birds.forEach(function(bird){
     bird.floor = player.floor+32;
   });
-  // console.log(player.position);
+
   camera.update(player);
   em.update(elapsedTime);
 }
@@ -179,6 +179,7 @@ function update(elapsedTime) {
   */
 
 function render(elapsedTime, ctx) {
+  ctx.save();
   ctx.clearRect(0,0,canvas.width,canvas.height);
   renderBackgrounds(elapsedTime, ctx);
   /*var row;
@@ -197,6 +198,7 @@ function render(elapsedTime, ctx) {
   }*/
   renderWorld(elapsedTime, ctx);
   player.render(elapsedTime, ctx);
+  ctx.restore();
 }
 
 function renderBackgrounds(elapsedTime, ctx) {
@@ -216,7 +218,7 @@ function renderBackgrounds(elapsedTime, ctx) {
     for(column; column<mapWidth; column++)
     {
       // ??
-      //console.log((map[row*mapWidth+column]-1));
+
       ctx.drawImage(
         spritesheet,
         spriteArray[map[row*mapwidth+column]-1].x,spriteArray[map[row*mapwidth+column]-1].y,16,16,
@@ -383,7 +385,6 @@ function Archer(startingPosition, image, frame, walkingRange, walkingSpeed, shoo
   this.gravity = {x: 0, y: .1};
   this.velocity = {x: 0, y: 0};
   this.tiles = tiles;
-  console.log(this.shootingSpeed);
 }
 
 /**
@@ -502,8 +503,8 @@ Archer.prototype.update = function(elapsedTime, playerPosition, entityManager) {
  * @param {CanvasRenderingContext2D} ctx
  */
 Archer.prototype.render = function(elapasedTime, ctx) {
-  ctx.rect(this.position.x, this.position.y, this.frame.source_frame_width, this.frame.source_frame_height);
-  ctx.stroke();
+  //ctx.rect(this.position.x, this.position.y, this.frame.source_frame_width, this.frame.source_frame_height);
+  //ctx.stroke();
   ctx.drawImage(this.image,
                 this.actualFrame.x * this.frame.source_frame_width,
                 this.actualFrame.y * this.frame.source_frame_height,
@@ -1265,7 +1266,6 @@ function onFloor(melee) {
   if (melee.type == "skeleton_basic") melee.feet = 42;
   var frame = {width: melee.width, height: melee.height};
   var bool = melee.tiles.isFloor(melee.position, frame, melee.camera);
-  // console.log(bool);
   if (melee.tiles.isFloor(melee.position, frame, melee.camera)) {
     melee.velocity.y = 0;
     melee.floor = (Math.floor((melee.position.y+32)/16) * 16) - 32;
@@ -1522,7 +1522,7 @@ EntityManager.prototype.render = function(elapsedTime, ctx) {
   // TODO render collectables
 }
 
-function resetPlayer(e) {
+function resetPlayer(p) {
   // player bounces down
   if (this.player.state == "jump") {
     smoke.call(this, this.player.position, "green");
@@ -1531,16 +1531,16 @@ function resetPlayer(e) {
   }
   else {
     // player bounces to the left
-    if (this.player.position.x < e.position.x ) {
-      smoke.call(this, {x: this.player.position.x + 32, y: this.player.position.y}, "green");
-      this.player.position = {x: this.player.position.x - 20, y: this.player.position.y};
-      this.player.velocity.x = {x: this.player.velocity.x - 5, y: this.player.velocity.y};
+    if (this.player.position.x < p.x ) {
+      smoke.call(this, {x: (this.player.position.x + 32), y: this.player.position.y}, "green");
+      this.player.position.x -= 20;
+      this.player.velocity.x -= 15;
     }
     // player bounces to the right
     else {
       smoke.call(this, this.player.position, "green");
-      this.player.positiion = {x: this.player.position.x + 20, y: this.player.position.y};
-      this.player.velocity.x = {x: this.player.velocity.x + 5, y: this.player.velocity.y};
+      this.player.position.x += 52;
+      this.player.velocity.x += 15;
     }
   }
   this.particles = [];
@@ -1571,7 +1571,7 @@ function poopCollisions(me, player){
           player.position.y < pool.pool[i*4+1] + pool.bulletRadius &&
           player.position.x < pool.pool[4*i] + pool.bulletRadius &&
           player.position.y + 32 > pool.pool[i*4+1]){
-            resetPlayer.call(me, pool.pool[i*4+1]);
+            resetPlayer.call(me, {x: pool.pool[4*i], y: pool.pool[4*i+1]});
             break;
           }
     }
@@ -1597,10 +1597,7 @@ function collisions() {
         player.position.y < enemy.position.y + enemy.height &&
         player.position.x < enemy.position.x + enemy.width - enemy.hitboxDiff.x &&
         player.position.y + 32 > enemy.position.y + enemy.hitboxDiff.y) {
-          console.log("EnemyX :" + enemy.position.x);
-          console.log("EnemyY : " + (enemy.position.y + enemy.hitboxDiff.y + 14));
-          console.log("PlayerX :" + player.position.x);
-          console.log("PlayerY : " + (player.position.y + 32));
+
           // player is above enemy
           if (player.position.y + 32 <= enemy.position.y + enemy.hitboxDiff.y + 14) {
             player.velocity.y = -15; player.state = "jump"; player.time = 0;
@@ -1610,7 +1607,8 @@ function collisions() {
             if (enemy.life == 0) {
               killEnemy.call(self, i, enemy); }
             }
-          else { console.log("ResetPlayer"); resetPlayer.call(self, enemy); }
+          //player takes hit
+          else { resetPlayer.call(self, enemy.position); player.health -= 20; }
         }
   })
 }
@@ -1629,7 +1627,7 @@ function killEnemy(index, enemy) {
 
   //remove enemy
   e_array.splice(index, 1);
-  console.log(e_array.length);
+
 }
 
 // creates an explosion at a given position with a given color
@@ -1662,22 +1660,34 @@ function smoke(position, color)
 
 function detectPlayerParticleCollisions() {
   var self = this;
-  this.particles.forEach(function(particle){
+  this.particles.forEach(function(particle, i){
     // If the distance between player and particle is greater than player width
     // we can be sure that there is no collision
     // else we may have a rectangular collision
     if(Vector.magnitude(Vector.subtract(self.player.position, particle.position)) > self.player.frame.dest_frame_width) return;
-    //console.log("potential collision");
     if(!(
       self.player.position.x > particle.position.x + particle.frame.dest_frame_width ||
       self.player.position.x + self.player.frame.dest_frame_width < particle.position.x ||
       self.player.position.y > particle.position.y + particle.frame.dest_frame_height ||
       self.player.position.y + self.player.frame.dest_frame_height < particle.position.y
     )) {
-      resetPlayer.call(self, particle);
+      // player is above enemy
+      if (self.player.position.y + 32 <= particle.position.y + 10) {
+        self.player.velocity.y = -15; self.player.state = "jump"; self.player.time = 0;
+          removeParticle.call(self, i, particle);
+        }
+      //player takes hit
+      else { resetPlayer.call(self, particle.position); self.player.health -= 20; }
     }
 
   });
+}
+
+function removeParticle(index, particle) {
+  console.log(this);
+  var p_array = this.particles;
+
+  p_array.splice(index, 1);
 }
 
 },{"./smoke.js":17,"./vector.js":19}],14:[function(require,module,exports){
@@ -1853,6 +1863,7 @@ function Player(x,y) {
   this.storedF = 0;
   this.previousState = "moving";
   this.isdead = false;
+  this.health = 100;
 }
 
 /**
@@ -2161,7 +2172,7 @@ Tiles.prototype.isFloor = function(position, frame, camera){
 	var xL = Math.floor(x);
 	//var xC = Math.floor(x-1);
 	var xR = Math.floor(x-2);
-	var LTile = this.map1[y*700 + xL];
+	var LTile = this.map1[y*700 + xL]; //console.log(LTile);
 	//var CTile = this.map1[y*70 + xC];
 	var RTile = this.map1[y*700 + xR];
 	var isSolidL = this.tiles[LTile-1].solid;

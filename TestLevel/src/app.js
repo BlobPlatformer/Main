@@ -4,12 +4,20 @@
 const Game = require('./game');
 const Player = require('./player');
 const Tiles = require('./tiles');
-
+const Camera = require('./camera');
+const Vector = require('./vector');
+const EntityManager = require('./entity-manager');
+const ElfArcher = require('./enemies/archers/elf-archer');
+const EnemyBird = require('./enemies/flying/bird');
+const Diver = require('./enemies/flying/diver');
+const OrcArcher = require('./enemies/archers/orc-archer');
+const Orc = require('./enemies/melee/orc_basic');
+const Skeleton = require('./enemies/melee/skeleton_basic');
 
 /* Global variables */
 var canvas = document.getElementById('screen');
 var game = new Game(canvas, update, render);
-var player = new Player(0,16*35) ;
+var player = new Player(160,480);
 var input = {
   up: false,
   down: false,
@@ -20,10 +28,37 @@ var groundHit = false;
 
 
 var spritesheet = new Image();
-spritesheet.src = 'assets/basicTiles.jpg';
+spritesheet.src = 'assets/blobGameLevelSheet.png';
+var spriteArray = [{x: 0, y: 0}, {x: 16, y: 0},{x: 32, y: 0}, {x: 48, y: 0},{x: 64, y: 0}, {x: 80, y: 0},{x: 96, y: 0}, {x: 112, y: 0},{x: 128, y: 0},
+					{x: 0, y: 16}, {x: 16, y: 16},{x: 32, y: 16}, {x: 48, y: 16},{x: 64, y: 16}, {x: 80, y: 16},{x: 96, y: 16}, {x: 112, y: 16},{x: 128, y: 16},
+					{x: 0, y: 32}, {x: 16, y: 32},{x: 32, y: 32}, {x: 48, y: 32},{x: 64, y: 32}, {x: 80, y: 32},{x: 96, y: 32}, {x: 112, y: 32},{x: 128, y: 32},
+					{x: 0, y: 48}, {x: 16, y: 48},{x: 32, y: 48}, {x: 48, y: 48},{x: 64, y: 48}, {x: 80, y: 48},{x: 96, y: 48}, {x: 112, y: 48},{x: 128, y: 48},
+					{x: 0, y: 64}, {x: 16, y: 64},{x: 32, y: 64}, {x: 48, y: 64},{x: 64, y: 64}, {x: 80, y: 64},{x: 96, y: 64}, {x: 112, y: 64},{x: 128, y: 64},
+					{x: 0, y: 80}, {x: 16, y: 80},{x: 32, y: 80}, {x: 48, y: 80},{x: 64, y: 80}, {x: 80, y: 80},{x: 96, y: 80}, {x: 112, y: 80},{x: 128, y: 80},
+					{x: 0, y: 96}, {x: 16, y: 96},{x: 32, y: 96}, {x: 48, y: 96},{x: 64, y: 96}, {x: 80, y: 96},{x: 96, y: 96}, {x: 112, y: 96},{x: 128, y: 96},
+					{x: 0, y: 112}, {x: 16, y: 112},{x: 32, y: 112}, {x: 48, y: 112},{x: 64, y: 112}, {x: 80, y: 112},{x: 96, y: 112}, {x: 112, y: 112},{x: 128, y: 112},
+					{x: 0, y: 128}, {x: 16, y: 128},{x: 32, y: 128}, {x: 48, y: 128},{x: 64, y: 128}, {x: 80, y: 128},{x: 96, y: 128}, {x: 112, y: 128},{x: 128, y: 128}];
+
 var tiles = new Tiles();
 var map = tiles.getMap();
 var blocks = tiles.getBlocks();
+
+var camera = new Camera(canvas);
+
+var bird = new EnemyBird({x:1, y: 100}, {start: 0, end: canvas.width});
+var diver = new Diver({x:1, y: 100}, {start: 0, end: canvas.width});
+var orc = new Orc({x: 600, y: 200}, tiles, camera);
+var skelly = new Skeleton({x: 800, y: 200}, tiles, camera);
+var elfArcher = new ElfArcher({x: 780, y: 100}, tiles);
+var orcArcher = new OrcArcher({x: 520, y: 100}, tiles);
+var em = new EntityManager(player);
+
+em.addBird(bird);
+em.addEnemy(diver);
+em.addEnemy(orc);
+em.addEnemy(skelly);
+em.addEnemy(elfArcher);
+em.addEnemy(orcArcher);
 
 
 /**
@@ -113,17 +148,20 @@ masterLoop(performance.now());
  * the number of milliseconds passed since the last frame.
  */
 function update(elapsedTime) {
-	player.update(elapsedTime, input);
+  player.update(elapsedTime, input);
+
   if(player.velocity.y >= 0) {
-    if(tiles.isFloor(player.position)) {
+    if(tiles.isFloor(player.position, {height: 32, width: 32}, camera)) {
       //player.velocity = {x:0,y:0};
       player.velocity.y = 0;
       player.floor = (Math.floor((player.position.y+32)/16) * 16) - 32;
     }
     else {
-      player.floor = canvas.height - 32;
+      player.floor = player.position.y+player.velocity.y+1;
     }
   }
+  camera.update(player);
+  em.update(elapsedTime);
 }
 
 
@@ -134,21 +172,59 @@ function update(elapsedTime) {
   * the number of milliseconds passed since the last frame.
   * @param {CanvasRenderingContext2D} ctx the context to render to
   */
+
 function render(elapsedTime, ctx) {
-  //tilemap level background
-  var row;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  renderBackgrounds(elapsedTime, ctx);
+  /*var row;
   var col;
   for(var i=0; i<map.length; i++) {
     row = i%tiles.getWidth();
     col = Math.floor(i/tiles.getWidth());
-    ctx.drawImage(
-		spritesheet,
-        (map[i]-1)*16,0,16,16,
-        row*16,col*16,16,16
-	  );
-  }
-
-  //player
+    if(camera.onScreen({x:row*16,y:col*16}))
+    {
+      ctx.drawImage(
+        spritesheet,
+        spriteArray[map[i]-1].x,spriteArray[map[i]-1].y,16,16,
+        row*16+camera.x,col*16+camera.y,16,16//+camera.y+(16*35),16,16
+        );
+    }
+  }*/
   player.render(elapsedTime, ctx);
+  em.render(elapsedTime, ctx);
 }
 
+function renderBackgrounds(elapsedTime, ctx) {
+  var column = Math.floor(camera.x/16);
+  var row = Math.floor(camera.y/16);
+  var mapwidth = 700;
+  var mapWidth = column+(canvas.width/16)+1;
+  var mapHeight = row+(canvas.height/16)+1;
+
+
+
+
+  ctx.save();
+  ctx.translate(-camera.x,-camera.y);
+  for(row; row<mapHeight; row++)
+  {
+    for(column; column<mapWidth; column++)
+    {
+      ctx.drawImage(
+        spritesheet,
+        spriteArray[map[row*mapwidth+column]-1].x,spriteArray[map[row*mapwidth+column]-1].y,16,16,
+        column*16,row*16,16,16
+      );
+    }
+    column = Math.floor(camera.x/16);
+  }
+  ctx.restore();
+}
+
+function renderWorld() {
+
+}
+
+function renderGUI() {
+
+}

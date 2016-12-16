@@ -2,6 +2,7 @@
 
 /* Classes and Libraries */
 const Vector = require('./vector');
+const Tiles = require('./tiles');
 
 /**
  * @module Camera
@@ -9,11 +10,15 @@ const Vector = require('./vector');
  */
 module.exports = exports = Camera;
 
+var tiles = new Tiles();
+var map = tiles.getMap();
+
 /**
  * @constructor Camera
  * Creates a camera
  * @param {Rect} screen the bounds of the screen
  */
+
 function Camera(screen) {
   this.x = 0;
   this.y = 0;
@@ -21,14 +26,15 @@ function Camera(screen) {
   this.height = screen.height;
 }
 
+
 /**
  * @function update
  * Updates the camera based on the supplied target
  * @param {Vector} target what the camera is looking at
  */
 Camera.prototype.update = function(target) {
-   this.y = target.y - 200;
-
+  this.x = target.position.x-target.redicule.x;
+  this.y = target.position.y-target.redicule.y;
 }
 
 /**

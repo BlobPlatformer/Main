@@ -17,7 +17,7 @@ const Skeleton = require('./enemies/melee/skeleton_basic');
 /* Global variables */
 var canvas = document.getElementById('screen');
 var game = new Game(canvas, update, render);
-var player = new Player(160,480);
+var player = new Player(160, 480);
 var input = {
   up: false,
   down: false,
@@ -49,8 +49,8 @@ var bird = new EnemyBird({x:1, y: 100}, {start: 0, end: canvas.width});
 var diver = new Diver({x:1, y: 100}, {start: 0, end: canvas.width});
 var orc = new Orc({x: 600, y: 200}, tiles, camera);
 var skelly = new Skeleton({x: 800, y: 200}, tiles, camera);
-var elfArcher = new ElfArcher({x: 780, y: 100}, tiles);
-var orcArcher = new OrcArcher({x: 520, y: 100}, tiles);
+var elfArcher = new ElfArcher({x: 1780, y: 100}, tiles);
+var orcArcher = new OrcArcher({x: 1520, y: 100}, tiles);
 var em = new EntityManager(player);
 
 em.addBird(bird);
@@ -160,6 +160,7 @@ function update(elapsedTime) {
       player.floor = player.position.y+player.velocity.y+1;
     }
   }
+  // console.log(player.position);
   camera.update(player);
   em.update(elapsedTime);
 }

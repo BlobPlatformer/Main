@@ -66,6 +66,7 @@ function Archer(startingPosition, image, frame, walkingRange, walkingSpeed, shoo
   this.gravity = {x: 0, y: .1};
   this.velocity = {x: 0, y: 0};
   this.tiles = tiles;
+  console.log(this.shootingSpeed);
 }
 
 /**
@@ -184,6 +185,8 @@ Archer.prototype.update = function(elapsedTime, playerPosition, entityManager) {
  * @param {CanvasRenderingContext2D} ctx
  */
 Archer.prototype.render = function(elapasedTime, ctx) {
+  ctx.rect(this.position.x, this.position.y, this.frame.source_frame_width, this.frame.source_frame_height);
+  ctx.stroke();
   ctx.drawImage(this.image,
                 this.actualFrame.x * this.frame.source_frame_width,
                 this.actualFrame.y * this.frame.source_frame_height,

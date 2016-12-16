@@ -193,7 +193,7 @@ function onFloor(melee) {
   if (melee.type == "skeleton_basic") melee.feet = 42;
   var frame = {width: melee.width, height: melee.height};
   var bool = melee.tiles.isFloor(melee.position, frame, melee.camera);
-  console.log(bool);
+  // console.log(bool);
   if (melee.tiles.isFloor(melee.position, frame, melee.camera)) {
     melee.velocity.y = 0;
     melee.floor = (Math.floor((melee.position.y+32)/16) * 16) - 32;

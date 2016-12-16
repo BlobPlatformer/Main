@@ -18,7 +18,7 @@ const Skeleton = require('./enemies/melee/skeleton_basic');
 /* Global variables */
 var canvas = document.getElementById('screen');
 var game = new Game(canvas, update, render);
-var player = new Player(160,480);
+var player = new Player(160, 480);
 var input = {
   up: false,
   down: false,
@@ -50,8 +50,8 @@ var bird = new EnemyBird({x:1, y: 100}, {start: 0, end: canvas.width});
 var diver = new Diver({x:1, y: 100}, {start: 0, end: canvas.width});
 var orc = new Orc({x: 600, y: 200}, tiles, camera);
 var skelly = new Skeleton({x: 800, y: 200}, tiles, camera);
-var elfArcher = new ElfArcher({x: 780, y: 100}, tiles);
-var orcArcher = new OrcArcher({x: 520, y: 100}, tiles);
+var elfArcher = new ElfArcher({x: 1780, y: 100}, tiles);
+var orcArcher = new OrcArcher({x: 1520, y: 100}, tiles);
 var em = new EntityManager(player);
 
 em.addBird(bird);
@@ -161,6 +161,7 @@ function update(elapsedTime) {
       player.floor = player.position.y+player.velocity.y+1;
     }
   }
+  // console.log(player.position);
   camera.update(player);
   em.update(elapsedTime);
 }
@@ -377,6 +378,7 @@ function Archer(startingPosition, image, frame, walkingRange, walkingSpeed, shoo
   this.gravity = {x: 0, y: .1};
   this.velocity = {x: 0, y: 0};
   this.tiles = tiles;
+  console.log(this.shootingSpeed);
 }
 
 /**
@@ -495,6 +497,8 @@ Archer.prototype.update = function(elapsedTime, playerPosition, entityManager) {
  * @param {CanvasRenderingContext2D} ctx
  */
 Archer.prototype.render = function(elapasedTime, ctx) {
+  ctx.rect(this.position.x, this.position.y, this.frame.source_frame_width, this.frame.source_frame_height);
+  ctx.stroke();
   ctx.drawImage(this.image,
                 this.actualFrame.x * this.frame.source_frame_width,
                 this.actualFrame.y * this.frame.source_frame_height,
@@ -571,7 +575,7 @@ const Archer = require('./archer');
 const WALKING_RANGE_IN_PX = 600;
 const WALKING_SPEED_IN_PX = 1;
 const SHOOTING_RANGE_IN_PX = 350;
-const SHOOTING_SPEED = 1000/13;
+const SHOOTING_SPEED = 1000/40;
 const ARROW_SPEED_IN_PX = 5;
 const ARROW_SHIFT_IN_PX = 24; //Num of pixel to shift the arrow down
 const MAXIMUM_ARROWS_GENERATED = 1;
@@ -1256,7 +1260,7 @@ function onFloor(melee) {
   if (melee.type == "skeleton_basic") melee.feet = 42;
   var frame = {width: melee.width, height: melee.height};
   var bool = melee.tiles.isFloor(melee.position, frame, melee.camera);
-  console.log(bool);
+  // console.log(bool);
   if (melee.tiles.isFloor(melee.position, frame, melee.camera)) {
     melee.velocity.y = 0;
     melee.floor = (Math.floor((melee.position.y+32)/16) * 16) - 32;

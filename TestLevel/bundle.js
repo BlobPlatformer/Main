@@ -63,14 +63,14 @@ var boss = new Boss({x: 1320, y: 200}, tiles);
 var em = new EntityManager(player);
 
 
-//em.addBird(bird);
-//em.addEnemy(diver);
-//em.addEnemy(orc);
-//em.addEnemy(skelly);
-//em.addEnemy(elfArcher);
-//em.addEnemy(orcArcher);
-//em.addEnemy(basic_mage);
-//em.addEnemy(medium_mage);
+em.addBird(bird);
+em.addEnemy(diver);
+em.addEnemy(orc);
+em.addEnemy(skelly);
+em.addEnemy(elfArcher);
+em.addEnemy(orcArcher);
+em.addEnemy(basic_mage);
+em.addEnemy(medium_mage);
 em.addEnemy(boss);
 //em.addEnemy(advanced_mage);
 
@@ -211,6 +211,7 @@ function render(elapsedTime, ctx) {
   }*/
   renderWorld(elapsedTime, ctx);
   player.render(elapsedTime, ctx);
+  renderGUI(elapsedTime, ctx);
   ctx.restore();
 }
 
@@ -220,9 +221,6 @@ function renderBackgrounds(elapsedTime, ctx) {
   var mapwidth = 700;
   var mapWidth = column+(canvas.width/16)+1;
   var mapHeight = row+(canvas.height/16)+1;
-
-
-
 
   ctx.save();
   ctx.translate(-camera.x,-camera.y);
@@ -250,10 +248,39 @@ em.render(elapsedTime, ctx);
 ctx.restore();
 }
 
-function renderGUI() {
+function renderGUI(elapsedTime, ctx) {
 
+  var color; //color of health bar
+  var barHeight = 750;
+  ctx.fillText("Health", 60, barHeight+10);
+  //draw HP background
+  ctx.save();
+  ctx.fillStyle="grey";
+  ctx.fillRect(100, barHeight, 104, 12);
+  ctx.restore();
+
+  ctx.save();
+  ctx.fillStyle="black";
+  ctx.fillRect(102, barHeight+2, 100, 8);
+  ctx.restore();
+
+  //daw HP forground
+  ctx.save();
+
+  if (60 <= player.health){
+    color = "#4CAF50";//green
+  }
+  else if (30 <= player.health && player.health < 60){
+    color = "yellow";
+  }
+  else{
+    color = "red";
+  }
+  ctx.fillStyle=color;
+  ctx.strokeStyle=color;
+  ctx.fillRect(102, barHeight+2, player.health, 8);
+  ctx.restore();
 }
-
 },{"./camera":2,"./enemies/archers/elf-archer":5,"./enemies/archers/orc-archer":6,"./enemies/boss/boss":7,"./enemies/flying/bird":8,"./enemies/flying/diver":10,"./enemies/mages/advanced_mage":11,"./enemies/mages/basic_mage":12,"./enemies/mages/medium_mage":14,"./enemies/melee/orc_basic":17,"./enemies/melee/skeleton_basic":18,"./entity-manager":19,"./game":20,"./player":22,"./tiles":24,"./vector":25}],2:[function(require,module,exports){
 "use strict";
 
@@ -2749,8 +2776,8 @@ Player.prototype.update = function(elapsedTime, input) {
     this.velocity.y += this.gravity.y;
   }
   // keep player on screen
-  if(this.position.x < 0) this.position.x = 0;
-  if(this.position.x > CANVAS_WIDTH+16*700) this.position.x = CANVAS_WIDTH+16*700;
+  if(this.position.x < 160) this.position.x = 160;
+  if(this.position.x > 16*700-160-32) this.position.x = 16*700-160-32;
   if(this.position.y < 0) this.position.y = 0;
   if(this.position.y > this.floor) this.position.y = this.floor;
 //}

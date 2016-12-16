@@ -2,7 +2,7 @@
 
 /* Classes and Libraries */
 const Vector = require('../../vector');
-const Spell = require('./spell');
+const Arrow = require('../archers/arrow');
 
 /* Constants */
 const MS_PER_FRAME = 1000/12;
@@ -13,69 +13,69 @@ const WALK_LEFT_FRAME_Y = 9;
 const WALK_LEFT_FRAME_MAX_X = 9;
 const WALK_RIGHT_FRAME_Y = 11;
 const WALK_RIGHT_FRAME_MAX_X = 9;
-const SHOOT_LEFT_FRAME_Y = 1;
-const SHOOT_LEFT_FRAME_MAX_X = 7;
-const SHOOT_RIGHT_FRAME_Y = 3;
-const SHOOT_RIGHT_FRAME_MAX_X = 7;
-const SHOOTING_FRAME = 6;
+const SHOOT_LEFT_FRAME_Y = 17;
+const SHOOT_LEFT_FRAME_MAX_X = 12;
+const SHOOT_RIGHT_FRAME_Y = 19;
+const SHOOT_RIGHT_FRAME_MAX_X = 12;
+const SHOOTING_FRAME = 8;
 const MAX_Y_VELOCITY = 8;
 const CANVAS_HEIGHT = 800;
-const SPELL_CD = 1500;
+const WALKING_RANGE_IN_PX = 1000;
+const WALKING_SPEED_IN_PX = 1.75;
+const SHOOTING_RANGE_IN_PX = 500;
+const SHOOTING_SPEED = 1000/16;
+const FRAME = {source_frame_width: 64,
+               source_frame_height: 64,
+               dest_frame_width: 71,
+               dest_frame_height: 71
+};
+const ARROW = {speed: 7.5, shift: 36};
 
 /**
- * @module Mage
- * A class representing a mage enemy
+ * @module Boss
+ * A class representing an archer enemy
  */
-module.exports = exports = Mage;
+module.exports = exports = Boss;
 
 
 /**
- * @constructor  Mage
- * Base class for enemies which shoot shoot spells
+ * @constructor Boss
+ * Base class for enemies which shoot arrows
  * @param {Object} startingPosition, object containing x and y coords
- * @param {Image} image, source spritesheet
- * @param {Object} frame, object containing display properties including width and height
- * of the source frame (real size in the sprite sheet) and width and height of destination
- * frame (how it will be really displayed)
- * @param {Int} walkingRange, distance from which the mage starts moving towards the player
- * @param {Int} walkingSpeed, speed of walking
- * @param {Int} shootingRange, distance from which can mage start shooting
- * @param {Int} shootingSpeed, speed of shooting
- * @param {Int} spellSpeed, speed of an spell
- * @param {Int} tiles, checking if a mage is standing on a floor
+ * @param {Int} tiles, checking wheter an archer is standing on the floor
  */
-function Mage(startingPosition, image, frame, walkingRange, walkingSpeed, shootingRange, shootingSpeed, spell, tiles, type) {
+function Boss(startingPosition, tiles) {
   this.position = startingPosition;
   this.state = "idle";
   this.direction = LEFT;
-  this.image = image;
+  this.image = new Image();
+  this.image.src = 'assets/img/Sprite_Sheets/boss/boss.png';
   this.actualFrame = {
     x: 0,
     maxX: IDLE_FRAME_MAX_X,
     y: WALK_LEFT_FRAME_Y // Y frame is the same for WALK and IDLE state
   };
-  this.frame = frame;
-  this.walkingRange = walkingRange;
-  this.walkingSpeed = walkingSpeed;
-  this.shootingRange = shootingRange;
-  this.shootingSpeed = shootingSpeed;
-  this.spellsGenerated = 0;
-  this.spellCooldown = 0;
-  this.spell = spell;
+  this.frame = FRAME;
+  this.walkingRange = WALKING_RANGE_IN_PX;
+  this.walkingSpeed = WALKING_SPEED_IN_PX;
+  this.shootingRange = SHOOTING_RANGE_IN_PX;
+  this.shootingSpeed = SHOOTING_SPEED;
+  this.arrowsGenerated = 0;
+  this.arrow = ARROW;
   this.time = MS_PER_FRAME;
-  this.type = type;
   // Gravity and other stuff
   this.floor = 16*35; // May be parametrized
   this.gravity = {x: 0, y: .1};
   this.velocity = {x: 0, y: 0};
   this.tiles = tiles;
+  this.life = 5;
 }
 
 /**
  * @function setFramesAccordingToState
- * Updates the mage frames based on his state
+ * Updates the archer frames based on his state
  */
-Mage.prototype.setFramesAccordingToState = function() {
+Boss.prototype.setFramesAccordingToState = function() {
   switch (this.state) {
     case "idle":
     case "falling":
@@ -87,6 +87,15 @@ Mage.prototype.setFramesAccordingToState = function() {
         this.actualFrame.y = WALK_RIGHT_FRAME_Y;
         this.actualFrame.x = 0;
         this.actualFrame.maxX = IDLE_FRAME_MAX_X;
+      }
+      break;
+    case "walking":
+      if(this.direction == LEFT) {
+        this.actualFrame.y = WALK_LEFT_FRAME_Y;
+        this.actualFrame.maxX = WALK_LEFT_FRAME_MAX_X;
+      } else {
+        this.actualFrame.y = WALK_RIGHT_FRAME_Y;
+        this.actualFrame.maxX = WALK_RIGHT_FRAME_MAX_X;
       }
       break;
     case "shooting":
@@ -116,16 +125,19 @@ function onFloor() {
 
 /**
  * @function update
- * Updates the mage enemy based on the supplied input
+ * Updates the archer enemy based on the supplied input
  * @param {DOMHighResTimeStamp} elapsedTime
  * @param {object} playerPosition, object containing x and y coords
  * @param {object} entityManager, object which maintains all particles
  */
-Mage.prototype.update = function(elapsedTime, playerPosition, entityManager) {
+Boss.prototype.update = function(elapsedTime, playerPosition, entityManager) {
   this.time -= elapsedTime;
 
-  // Check if the enemy has landed or standing on the floor
+  // Check if the enemy has landed on the floor
   onFloor.call(this);
+
+  if(this.state == "walking" && this.velocity.x < this.walkingSpeed) this.velocity.x += .1;
+  this.position.x += (this.direction == LEFT)? -this.velocity.x : this.velocity.x;
   this.position.y += this.velocity.y;
 
   if(this.time > 0) return;
@@ -142,43 +154,39 @@ Mage.prototype.update = function(elapsedTime, playerPosition, entityManager) {
 
   // This if-else statement sets proper animation frames only
   if(magnitude > this.walkingRange || Math.abs(vector.y) > 120) {
-    // Player is far away/above/under the mage, stay idle, change frames only
+    // Player is far away/above/under the archer, stay idle, change frames only
     this.state = "idle";
     this.velocity.x = 0;
-    Mage.prototype.setFramesAccordingToState.call(this);
+    Boss.prototype.setFramesAccordingToState.call(this);
   }
-  else {
-    // Player has reached the shooting distance of the mage
-    // Mage starts shooting towards the player
-    if(this.spellCooldown <= 0)
-    {
-      this.state = "shooting";
-    }
-    else{
-      this.state = "idle";
-    }
-
+  else if (magnitude > this.shootingRange) {
+    // Player has reached the walking distance of the archer
+    // Boss goes towards the player
+    this.state = "walking";
+    Boss.prototype.setFramesAccordingToState.call(this);
+  } else {
+    // Player has reached the shooting distance of the archer
+    // Boss starts shooting towards the player
+    this.state = "shooting";
     this.velocity.x = 0;
-    Mage.prototype.setFramesAccordingToState.call(this);
+    Boss.prototype.setFramesAccordingToState.call(this);
 
-    if(this.actualFrame.x == SHOOTING_FRAME && this.spellCooldown <= 0) {
-      var spellVelocity = {x: (this.direction == LEFT)? -this.spell.speed : this.spell.speed, y: 0}
-      entityManager.addParticle(new Spell({x: this.position.x, y: this.position.y + this.spell.shift}, spellVelocity, this.type));
-      this.spellGenerated = this.spellGenerated + 1;
-      this.spellCooldown = SPELL_CD;
+    if(this.actualFrame.x == SHOOTING_FRAME) {
+      var arrowVelocity = {x: (this.direction == LEFT)? -this.arrow.speed : this.arrow.speed, y: 0}
+      entityManager.addParticle(new Arrow({x: this.position.x, y: this.position.y + this.arrow.shift}, arrowVelocity));
+      this.arrowsGenerated = this.arrowsGenerated + 1;
     }
   }
-  this.spellCooldown -= elapsedTime;
-  //console.log(this.state);
+
 }
 
 /**
  * @function render
- * Renders the mage enemy in world coordinates
+ * Renders the archer enemy in world coordinates
  * @param {DOMHighResTimeStamp} elapsedTime
  * @param {CanvasRenderingContext2D} ctx
  */
-Mage.prototype.render = function(elapasedTime, ctx) {
+Boss.prototype.render = function(elapasedTime, ctx) {
   ctx.drawImage(this.image,
                 this.actualFrame.x * this.frame.source_frame_width,
                 this.actualFrame.y * this.frame.source_frame_height,

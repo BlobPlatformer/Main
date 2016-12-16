@@ -1,3 +1,2934 @@
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+const Game = require('./game');
+const Player = require('./player');
+const Tiles = require('./tiles');
+const Camera = require('./camera');
+const Vector = require('./vector');
+const EntityManager = require('./entity-manager');
+const ElfArcher = require('./enemies/archers/elf-archer');
+const EnemyBird = require('./enemies/flying/bird');
+const Diver = require('./enemies/flying/diver');
+const OrcArcher = require('./enemies/archers/orc-archer');
+const Orc = require('./enemies/melee/orc_basic');
+const Skeleton = require('./enemies/melee/skeleton_basic');
+const MasterMage = require('./enemies/mages/advanced_mage');
+const MediumMage = require('./enemies/mages/medium_mage');
+const BasicMage = require('./enemies/mages/basic_mage');
+const Boss = require('./enemies/boss/boss');
+
+/* Global variables */
+var canvas = document.getElementById('screen');
+var game = new Game(canvas, update, render);
+var player = new Player(160, 480);
+var input = {
+  up: false,
+  down: false,
+  left: false,
+  right: false
+}
+var groundHit = false;
+var state = "level"; //levelSelectionScreen: "level", WinScreen: "win", PlayingLevel: "run"
+
+var levelSelect = new Image();
+levelSelect.src = 'assets/LevelSelector.png';
+
+var spritesheet = new Image();
+spritesheet.src = 'assets/blobGameLevelSheet.png';
+var spriteArray = [{x: 0, y: 0}, {x: 16, y: 0},{x: 32, y: 0}, {x: 48, y: 0},{x: 64, y: 0}, {x: 80, y: 0},{x: 96, y: 0}, {x: 112, y: 0},{x: 128, y: 0},
+					{x: 0, y: 16}, {x: 16, y: 16},{x: 32, y: 16}, {x: 48, y: 16},{x: 64, y: 16}, {x: 80, y: 16},{x: 96, y: 16}, {x: 112, y: 16},{x: 128, y: 16},
+					{x: 0, y: 32}, {x: 16, y: 32},{x: 32, y: 32}, {x: 48, y: 32},{x: 64, y: 32}, {x: 80, y: 32},{x: 96, y: 32}, {x: 112, y: 32},{x: 128, y: 32},
+					{x: 0, y: 48}, {x: 16, y: 48},{x: 32, y: 48}, {x: 48, y: 48},{x: 64, y: 48}, {x: 80, y: 48},{x: 96, y: 48}, {x: 112, y: 48},{x: 128, y: 48},
+					{x: 0, y: 64}, {x: 16, y: 64},{x: 32, y: 64}, {x: 48, y: 64},{x: 64, y: 64}, {x: 80, y: 64},{x: 96, y: 64}, {x: 112, y: 64},{x: 128, y: 64},
+					{x: 0, y: 80}, {x: 16, y: 80},{x: 32, y: 80}, {x: 48, y: 80},{x: 64, y: 80}, {x: 80, y: 80},{x: 96, y: 80}, {x: 112, y: 80},{x: 128, y: 80},
+					{x: 0, y: 96}, {x: 16, y: 96},{x: 32, y: 96}, {x: 48, y: 96},{x: 64, y: 96}, {x: 80, y: 96},{x: 96, y: 96}, {x: 112, y: 96},{x: 128, y: 96},
+					{x: 0, y: 112}, {x: 16, y: 112},{x: 32, y: 112}, {x: 48, y: 112},{x: 64, y: 112}, {x: 80, y: 112},{x: 96, y: 112}, {x: 112, y: 112},{x: 128, y: 112},
+					{x: 0, y: 128}, {x: 16, y: 128},{x: 32, y: 128}, {x: 48, y: 128},{x: 64, y: 128}, {x: 80, y: 128},{x: 96, y: 128}, {x: 112, y: 128},{x: 128, y: 128}];
+
+var tiles = new Tiles();
+var map = tiles.getMap();
+var blocks = tiles.getBlocks();
+
+var camera = new Camera(canvas);
+
+var bird = new EnemyBird({x:1, y: 100}, {start: 0, end: canvas.width});
+var diver = new Diver({x:1, y: 100}, {start: 0, end: canvas.width});
+var orc = new Orc({x: 600, y: 200}, tiles, camera);
+var skelly = new Skeleton({x: 800, y: 200}, tiles, camera);
+var elfArcher = new ElfArcher({x: 1780, y: 100}, tiles);
+var orcArcher = new OrcArcher({x: 1520, y: 100}, tiles);
+var basic_mage = new BasicMage({x: 1220, y: 200}, tiles);
+var medium_mage = new MediumMage({x: 1320, y: 200}, tiles);
+var advanced_mage = new MasterMage({x: 1520, y: 200}, tiles);
+var boss = new Boss({x: 1320, y: 200}, tiles);
+var em = new EntityManager(player);
+
+
+//em.addBird(bird);
+//em.addEnemy(diver);
+//em.addEnemy(orc);
+//em.addEnemy(skelly);
+//em.addEnemy(elfArcher);
+//em.addEnemy(orcArcher);
+//em.addEnemy(basic_mage);
+//em.addEnemy(medium_mage);
+em.addEnemy(boss);
+//em.addEnemy(advanced_mage);
+
+
+/**
+ * @function onkeydown
+ * Handles keydown events
+ */
+window.onkeydown = function(event) {
+  //event.preventDefault();
+  switch(event.key) {
+    case "ArrowUp":
+    case "w":
+      input.up = true;
+      event.preventDefault();
+      break;
+    case "ArrowDown":
+    case "s":
+      input.down = true;
+      event.preventDefault();
+      break;
+    case "ArrowLeft":
+    case "a":
+      input.left = true;
+      event.preventDefault();
+      break;
+    case "ArrowRight":
+    case "d":
+      input.right = true;
+      event.preventDefault();
+      break;
+  }
+}
+
+/**
+ * @function onkeyup
+ * Handles keydown events
+ */
+window.onkeyup = function(event) {
+  //event.preventDefault();
+  switch(event.key) {
+    case "ArrowUp":
+    case "w":
+      input.up = false;
+      event.preventDefault();
+      break;
+    case "ArrowDown":
+    case "s":
+      input.down = false;
+      event.preventDefault();
+      break;
+    case "ArrowLeft":
+    case "a":
+      input.left = false;
+      event.preventDefault();
+      break;
+    case "ArrowRight":
+    case "d":
+      input.right = false;
+      event.preventDefault();
+      break;
+      case "1":
+    		if(state != "run") {
+    			map = tiles.getMap(1);
+    		}
+    		state = "run"
+    		break;
+    	case "2":
+    		if(state != "run") {
+    			map = tiles.getMap(2);
+    		}
+    		state = "run"
+    		break;
+    	case "3":
+    		if(state != "run") {
+    			map = tiles.getMap(3);
+    		}
+    		state = "run"
+    		break;
+  }
+}
+
+window.onkeypress = function(event) {
+  event.preventDefault();
+  if(event.keyCode == 32 || event.keyCode == 31) {
+    player.jump();
+  }
+}
+
+/**
+ * @function masterLoop
+ * Advances the game in sync with the refresh rate of the screen
+ * @param {DOMHighResTimeStamp} timestamp the current time
+ */
+var masterLoop = function(timestamp) {
+  game.loop(timestamp);
+  window.requestAnimationFrame(masterLoop);
+}
+masterLoop(performance.now());
+
+/**
+ * @function update
+ * Updates the game state, moving
+ * game objects and handling interactions
+ * between them.
+ * @param {DOMHighResTimeStamp} elapsedTime indicates
+ * the number of milliseconds passed since the last frame.
+ */
+function update(elapsedTime) {
+  if(state == "run"){
+    if (!player.isdead){
+      setTimeout(null, 1000);
+      return true;
+    }
+    if (player.health <= 0){
+      player.isdead = true;
+    }
+    player.update(elapsedTime, input, tiles);
+
+    if(player.velocity.y >= 0) {
+      if(tiles.isFloor(player.position, {height: 32, width: 32}, camera)) {
+        //player.velocity = {x:0,y:0};
+        player.velocity.y = 0;
+        player.floor = (Math.floor((player.position.y+32)/16) * 16)-32;
+      }
+      else {
+        player.floor = player.position.y+player.velocity.y+1;
+      }
+    }
+    em.birds.forEach(function(bird){
+      bird.floor = player.floor+32;
+    });
+
+    camera.update(player);
+    em.update(elapsedTime);
+  }
+
+}
+
+
+/**
+  * @function render
+  * Renders the current game state into a back buffer.
+  * @param {DOMHighResTimeStamp} elapsedTime indicates
+  * the number of milliseconds passed since the last frame.
+  * @param {CanvasRenderingContext2D} ctx the context to render to
+  */
+
+function render(elapsedTime, ctx) {
+  switch (state){
+    case "run":
+      ctx.save();
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      renderBackgrounds(elapsedTime, ctx);
+
+      /*var row;
+      var col;
+      for(var i=0; i<map.length; i++) {
+        row = i%tiles.getWidth();
+        col = Math.floor(i/tiles.getWidth());
+        if(camera.onScreen({x:row*16,y:col*16}))
+        {
+          ctx.drawImage(
+            spritesheet,
+            spriteArray[map[i]-1].x,spriteArray[map[i]-1].y,16,16,
+            row*16+camera.x,col*16+camera.y,16,16//+camera.y+(16*35),16,16
+            );
+        }
+      }*/
+      renderWorld(elapsedTime, ctx);
+      if (!player.isdead){
+        player.render(elapsedTime, ctx);
+      }
+      ctx.restore();
+      renderGUI(elapsedTime, ctx);
+      break;
+    case "level":
+      renderLevelSelection(elapsedTime, ctx);
+      break;
+    case "win":
+      renderWinScreen(elapsedTime, ctx);
+      break;
+
+  }
+
+}
+
+function renderBackgrounds(elapsedTime, ctx) {
+  var column = Math.floor(camera.x/16);
+  var row = Math.floor(camera.y/16);
+  var mapwidth = 700;
+  var mapWidth = column+(canvas.width/16)+1;
+  var mapHeight = row+(canvas.height/16)+1;
+
+
+
+
+  ctx.save();
+  ctx.translate(-camera.x,-camera.y);
+  for(row; row<mapHeight; row++)
+  {
+    for(column; column<mapWidth; column++)
+    {
+      // ??
+
+      ctx.drawImage(
+        spritesheet,
+        spriteArray[map[row*mapwidth+column]-1].x,spriteArray[map[row*mapwidth+column]-1].y,16,16,
+        column*16,row*16,16,16
+      );
+    }
+    column = Math.floor(camera.x/16);
+  }
+  ctx.restore();
+}
+
+function renderWorld(elapsedTime, ctx) {
+ctx.save();
+ctx.translate(-camera.x, -camera.y);
+em.render(elapsedTime, ctx);
+ctx.restore();
+}
+
+function renderWinScreen(elapsedTime, ctx) {
+	renderLevelSelection(elapsedTime, ctx);
+}
+function renderLevelSelection(elapsedTime, ctx) {
+	ctx.drawImage(
+        levelSelect,
+        0,0,1120,800,
+        0,0,1120,800
+      );
+}
+
+function renderGUI(elapsedTime, ctx) {
+
+    var color; //color of health bar
+    var barHeight = 750;
+    ctx.fillText("Health", 60, barHeight+10);
+    //draw HP background
+    ctx.save();
+    ctx.fillStyle="grey";
+    ctx.fillRect(100, barHeight, 104, 12);
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle="black";
+    ctx.fillRect(102, barHeight+2, 100, 8);
+    ctx.restore();
+
+    //daw HP forground
+    ctx.save();
+
+    if (60 <= player.health){
+        color = "#4CAF50";//green
+    }
+    else if (30 <= player.health && player.health < 60){
+        color = "yellow";
+    }
+    else{
+        color = "red";
+    }
+    ctx.fillStyle=color;
+    ctx.strokeStyle=color;
+    ctx.fillRect(102, barHeight+2, player.health, 8);
+    ctx.restore();
+}
+
+},{"./camera":2,"./enemies/archers/elf-archer":5,"./enemies/archers/orc-archer":6,"./enemies/boss/boss":7,"./enemies/flying/bird":8,"./enemies/flying/diver":10,"./enemies/mages/advanced_mage":11,"./enemies/mages/basic_mage":12,"./enemies/mages/medium_mage":14,"./enemies/melee/orc_basic":17,"./enemies/melee/skeleton_basic":18,"./entity-manager":19,"./game":20,"./player":22,"./tiles":24,"./vector":25}],2:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+const Vector = require('./vector');
+const Tiles = require('./tiles');
+
+/**
+ * @module Camera
+ * A class representing a simple camera
+ */
+module.exports = exports = Camera;
+
+var tiles = new Tiles();
+var map = tiles.getMap();
+
+/**
+ * @constructor Camera
+ * Creates a camera
+ * @param {Rect} screen the bounds of the screen
+ */
+
+function Camera(screen) {
+  this.x = 0;
+  this.y = 0;
+  this.width = screen.width;
+  this.height = screen.height;
+}
+
+
+/**
+ * @function update
+ * Updates the camera based on the supplied target
+ * @param {Vector} target what the camera is looking at
+ */
+Camera.prototype.update = function(target) {
+  this.x = target.position.x-target.redicule.x;
+  this.y = target.position.y-target.redicule.y;
+}
+
+/**
+ * @function onscreen
+ * Determines if an object is within the camera's gaze
+ * @param {Vector} target a point in the world
+ * @return true if target is on-screen, false if not
+ */
+Camera.prototype.onScreen = function(target) {
+  return (
+     target.x > this.x &&
+     target.x < this.x + this.width &&
+     target.y > this.y &&
+     target.y < this.y + this.height
+   );
+}
+
+/**
+ * @function toScreenCoordinates
+ * Translates world coordinates into screen coordinates
+ * @param {Vector} worldCoordinates
+ * @return the tranformed coordinates
+ */
+Camera.prototype.toScreenCoordinates = function(worldCoordinates) {
+  return Vector.subtract(worldCoordinates, this);
+}
+
+/**
+ * @function toWorldCoordinates
+ * Translates screen coordinates into world coordinates
+ * @param {Vector} screenCoordinates
+ * @return the tranformed coordinates
+ */
+Camera.prototype.toWorldCoordinates = function(screenCoordinates) {
+  return Vector.add(screenCoordinates, this);
+}
+
+},{"./tiles":24,"./vector":25}],3:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+const Vector = require('../../vector');
+const Arrow = require('./arrow');
+
+/* Constants */
+const MS_PER_FRAME = 1000/12;
+const LEFT = "l";
+const RIGHT = "r";
+const IDLE_FRAME_MAX_X = 1;
+const WALK_LEFT_FRAME_Y = 9;
+const WALK_LEFT_FRAME_MAX_X = 9;
+const WALK_RIGHT_FRAME_Y = 11;
+const WALK_RIGHT_FRAME_MAX_X = 9;
+const SHOOT_LEFT_FRAME_Y = 17;
+const SHOOT_LEFT_FRAME_MAX_X = 12;
+const SHOOT_RIGHT_FRAME_Y = 19;
+const SHOOT_RIGHT_FRAME_MAX_X = 12;
+const SHOOTING_FRAME = 8;
+const MAX_Y_VELOCITY = 8;
+const CANVAS_HEIGHT = 800;
+
+/**
+ * @module Archer
+ * A class representing an archer enemy
+ */
+module.exports = exports = Archer;
+
+
+/**
+ * @constructor Archer
+ * Base class for enemies which shoot arrows
+ * @param {Object} startingPosition, object containing x and y coords
+ * @param {Image} image, source spritesheet
+ * @param {Object} frame, object containing display properties including width and height
+ * of the source frame (real size in the sprite sheet) and width and height of destination
+ * frame (how it will be really displayed)
+ * @param {Int} walkingRange, distance from which the archer starts moving towards the player
+ * @param {Int} walkingSpeed, speed of walking
+ * @param {Int} shootingRange, distance from which can archer start shooting
+ * @param {Int} shootingSpeed, speed of shooting
+ * @param {Int} arrowSpeed, speed of an arrow
+ * @param {Int} tiles, checking wheter an archer is standing on the floor
+ */
+function Archer(startingPosition, image, frame, walkingRange, walkingSpeed, shootingRange, shootingSpeed, arrow, tiles) {
+  this.position = startingPosition;
+  this.state = "idle";
+  this.direction = LEFT;
+  this.image = image;
+  this.actualFrame = {
+    x: 0,
+    maxX: IDLE_FRAME_MAX_X,
+    y: WALK_LEFT_FRAME_Y // Y frame is the same for WALK and IDLE state
+  };
+  this.frame = frame;
+  this.walkingRange = walkingRange;
+  this.walkingSpeed = walkingSpeed;
+  this.shootingRange = shootingRange;
+  this.shootingSpeed = shootingSpeed;
+  this.arrowsGenerated = 0;
+  this.arrow = arrow;
+  this.time = MS_PER_FRAME;
+  // Gravity and other stuff
+  this.floor = 16*35; // May be parametrized
+  this.gravity = {x: 0, y: .1};
+  this.velocity = {x: 0, y: 0};
+  this.tiles = tiles;
+}
+
+/**
+ * @function setFramesAccordingToState
+ * Updates the archer frames based on his state
+ */
+Archer.prototype.setFramesAccordingToState = function() {
+  switch (this.state) {
+    case "idle":
+    case "falling":
+      if(this.direction == LEFT) {
+        this.actualFrame.y = WALK_LEFT_FRAME_Y;
+        this.actualFrame.x = 0;
+        this.actualFrame.maxX = IDLE_FRAME_MAX_X;
+      } else {
+        this.actualFrame.y = WALK_RIGHT_FRAME_Y;
+        this.actualFrame.x = 0;
+        this.actualFrame.maxX = IDLE_FRAME_MAX_X;
+      }
+      break;
+    case "walking":
+      if(this.direction == LEFT) {
+        this.actualFrame.y = WALK_LEFT_FRAME_Y;
+        this.actualFrame.maxX = WALK_LEFT_FRAME_MAX_X;
+      } else {
+        this.actualFrame.y = WALK_RIGHT_FRAME_Y;
+        this.actualFrame.maxX = WALK_RIGHT_FRAME_MAX_X;
+      }
+      break;
+    case "shooting":
+      if(this.direction == LEFT) {
+        this.actualFrame.y = SHOOT_LEFT_FRAME_Y;
+        this.actualFrame.maxX = SHOOT_LEFT_FRAME_MAX_X;
+      } else {
+        this.actualFrame.y = SHOOT_RIGHT_FRAME_Y;
+        this.actualFrame.maxX = SHOOT_RIGHT_FRAME_MAX_X;
+      }
+      break;
+  }
+}
+
+function onFloor() {
+  var frame = {width: this.frame.dest_frame_width, height: this.frame.dest_frame_height};
+
+  if (this.tiles.isFloor(this.position, frame)) {
+    this.velocity.y = 0;
+    this.floor = this.tiles.getFloor(this.position, frame);
+  }
+  else {
+    if(this.velocity.y < MAX_Y_VELOCITY) this.velocity.y += this.gravity.y;
+    this.floor = CANVAS_HEIGHT - 32;
+  }
+}
+
+/**
+ * @function update
+ * Updates the archer enemy based on the supplied input
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {object} playerPosition, object containing x and y coords
+ * @param {object} entityManager, object which maintains all particles
+ */
+Archer.prototype.update = function(elapsedTime, playerPosition, entityManager) {
+  this.time -= elapsedTime;
+
+  // Check if the enemy has landed on the floor
+  onFloor.call(this);
+
+  if(this.state == "walking" && this.velocity.x < this.walkingSpeed) this.velocity.x += .1;
+  this.position.x += (this.direction == LEFT)? -this.velocity.x : this.velocity.x;
+  this.position.y += this.velocity.y;
+
+  if(this.time > 0) return;
+  this.actualFrame.x = (this.actualFrame.x + 1) % this.actualFrame.maxX;
+
+  if(this.state == "shooting") this.time = this.shootingSpeed;
+  else this.time = MS_PER_FRAME;
+
+  var vector = Vector.subtract(playerPosition, this.position);
+  var magnitude = Vector.magnitude(vector);
+
+  if(vector.x <= 0) this.direction = LEFT;
+  else this.direction = RIGHT;
+
+  // This if-else statement sets proper animation frames only
+  if(magnitude > this.walkingRange || Math.abs(vector.y) > 120) {
+    // Player is far away/above/under the archer, stay idle, change frames only
+    this.state = "idle";
+    this.velocity.x = 0;
+    Archer.prototype.setFramesAccordingToState.call(this);
+  }
+  else if (magnitude > this.shootingRange) {
+    // Player has reached the walking distance of the archer
+    // Archer goes towards the player
+    this.state = "walking";
+    Archer.prototype.setFramesAccordingToState.call(this);
+  } else {
+    // Player has reached the shooting distance of the archer
+    // Archer starts shooting towards the player
+    this.state = "shooting";
+    this.velocity.x = 0;
+    Archer.prototype.setFramesAccordingToState.call(this);
+
+    if(this.actualFrame.x == SHOOTING_FRAME) {
+      var arrowVelocity = {x: (this.direction == LEFT)? -this.arrow.speed : this.arrow.speed, y: 0}
+      entityManager.addParticle(new Arrow({x: this.position.x, y: this.position.y + this.arrow.shift}, arrowVelocity));
+      this.arrowsGenerated = this.arrowsGenerated + 1;
+    }
+  }
+
+}
+
+/**
+ * @function render
+ * Renders the archer enemy in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+Archer.prototype.render = function(elapasedTime, ctx) {
+  //ctx.rect(this.position.x, this.position.y, this.frame.source_frame_width, this.frame.source_frame_height);
+  //ctx.stroke();
+  ctx.drawImage(this.image,
+                this.actualFrame.x * this.frame.source_frame_width,
+                this.actualFrame.y * this.frame.source_frame_height,
+                this.frame.source_frame_width,
+                this.frame.source_frame_height,
+                this.position.x,
+                this.position.y,
+                this.frame.dest_frame_width,
+                this.frame.dest_frame_height
+  );
+}
+
+},{"../../vector":25,"./arrow":4}],4:[function(require,module,exports){
+"use strict";
+
+/* Constants */
+const ARROW_LEFT = 0; // Frame position
+const ARROW_RIGHT = 1; // Frame position
+const FRAME = {source_frame_width: 33,
+               source_frame_height: 6,
+               dest_frame_width: 33,
+               dest_frame_height: 6
+};
+/* Classes and Libraries */
+const Particle = require('../../particle');
+
+/**
+ * @module Arrow
+ * A class representing an arrow
+ */
+module.exports = exports = Arrow;
+
+/**
+ * @constructor ElfArcher
+ * Class for an elf enemy which shoots arrows
+ * @param {Object} startingPosition, object containing x and y coords
+ */
+function Arrow(position, velocity) {
+  var image =  new Image();
+  image.src = 'assets/img/Sprite_Sheets/archers/arrow.png';
+
+  var actualFrame = {x: (velocity.x < 0)? ARROW_LEFT : ARROW_RIGHT, y: 0};
+
+  Particle.call(this, position, velocity, image, actualFrame, FRAME);
+}
+
+/**
+ * @function update
+ * Updates the arrow based on the supplied input
+ * @param {DOMHighResTimeStamp} elapedTime
+ */
+Arrow.prototype.update = function(elapsedTime) {
+  Particle.prototype.update.call(this, elapsedTime);
+}
+
+/**
+ * @function render
+ * Renders the arrow in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+Arrow.prototype.render = function(elapsedTime, ctx) {
+  Particle.prototype.render.call(this, elapsedTime, ctx);
+}
+
+},{"../../particle":21}],5:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+const Archer = require('./archer');
+
+
+/* Constants */
+const WALKING_RANGE_IN_PX = 600;
+const WALKING_SPEED_IN_PX = 1;
+const SHOOTING_RANGE_IN_PX = 350;
+const SHOOTING_SPEED = 1000/40;
+const ARROW_SPEED_IN_PX = 5;
+const ARROW_SHIFT_IN_PX = 24; //Num of pixel to shift the arrow down
+const MAXIMUM_ARROWS_GENERATED = 1;
+const FRAME = {source_frame_width: 64,
+               source_frame_height: 64,
+               dest_frame_width: 54,
+               dest_frame_height: 54
+};
+
+/**
+ * @module ElfArcher
+ * A class representing an archer enemy
+ */
+module.exports = exports = ElfArcher;
+
+
+/**
+ * @constructor ElfArcher
+ * Class for an elf enemy which shoots arrows
+ * @param {Object} startingPosition, object containing x and y coords
+ */
+function ElfArcher(startingPosition, tiles) {
+  var image = new Image();
+  image.src = 'assets/img/Sprite_Sheets/archers/elfarcher.png';
+  var arrow = {speed: ARROW_SPEED_IN_PX, shift: ARROW_SHIFT_IN_PX};
+  Archer.call(this, startingPosition, image, FRAME, WALKING_RANGE_IN_PX, WALKING_SPEED_IN_PX, SHOOTING_RANGE_IN_PX, SHOOTING_SPEED, arrow, tiles);
+}
+
+
+/**
+ * @function update
+ * Updates the elf archer enemy based on the supplied input
+ * @param {DOMHighResTimeStamp} elapedTime
+ * @param {object} playerPosition, object containing x and y coords
+ */
+ElfArcher.prototype.update = function(elapsedTime, playerPosition, entityManager) {
+  Archer.prototype.update.call(this, elapsedTime, playerPosition, entityManager);
+  this.arrowsGenerated = 0;
+}
+
+/**
+ * @function render
+ * Renders the elf archer enemy in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+ElfArcher.prototype.render = function(elapsedTime, ctx) {
+  Archer.prototype.render.call(this, elapsedTime, ctx);
+}
+
+},{"./archer":3}],6:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+const Archer = require('./archer');
+
+
+/* Constants */
+const WALKING_RANGE_IN_PX = 800;
+const WALKING_SPEED_IN_PX = 1.7;
+const SHOOTING_RANGE_IN_PX = 500;
+const SHOOTING_SPEED = 1000/20;
+const ARROW_SPEED_IN_PX = 6.5;
+const ARROW_SHIFT_IN_PX = 29; //Num of pixel to shift the arrow down
+const MAXIMUM_ARROWS_GENERATED = 3;
+const DEST_FRAME_SIZE = 64;
+const FRAME = {source_frame_width: 64,
+               source_frame_height: 64,
+               dest_frame_width: 64,
+               dest_frame_height: 64
+};
+const PAUSE = 1000;
+
+/**
+ * @module OrcArcher
+ * A class representing an archer enemy
+ */
+module.exports = exports = OrcArcher;
+
+
+/**
+ * @constructor OrcArcher
+ * Class for an orc enemy which shoots arrows
+ * @param {Object} startingPosition, object containing x and y coords
+ */
+function OrcArcher(startingPosition, tiles) {
+  var image = new Image();
+  image.src = 'assets/img/Sprite_Sheets/archers/orcarcher.png';
+  var arrow = {speed: ARROW_SPEED_IN_PX, shift: ARROW_SHIFT_IN_PX};
+  Archer.call(this, startingPosition, image, FRAME, WALKING_RANGE_IN_PX, WALKING_SPEED_IN_PX, SHOOTING_RANGE_IN_PX, SHOOTING_SPEED, arrow, tiles);
+  this.pauseTime = 0;
+}
+
+
+/**
+ * @function update
+ * Updates the orc archer enemy based on the supplied input
+ * @param {DOMHighResTimeStamp} elapedTime
+ * @param {object} playerPosition, object containing x and y coords
+ */
+OrcArcher.prototype.update = function(elapsedTime, playerPosition, entityManager) {
+  Archer.prototype.update.call(this, elapsedTime, playerPosition, entityManager);
+
+  if(this.arrowsGenerated == MAXIMUM_ARROWS_GENERATED) {
+    this.actualFrame.x = (this.actualFrame.x + 1) % this.actualFrame.maxX;    
+    this.time = PAUSE;
+    this.arrowsGenerated = 0;
+  }
+}
+
+/**
+ * @function render
+ * Renders the orc archer enemy in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+OrcArcher.prototype.render = function(elapsedTime, ctx) {
+  Archer.prototype.render.call(this, elapsedTime, ctx);
+}
+
+},{"./archer":3}],7:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+const Vector = require('../../vector');
+const Arrow = require('../archers/arrow');
+
+/* Constants */
+const MS_PER_FRAME = 1000/12;
+const LEFT = "l";
+const RIGHT = "r";
+const IDLE_FRAME_MAX_X = 1;
+const WALK_LEFT_FRAME_Y = 9;
+const WALK_LEFT_FRAME_MAX_X = 9;
+const WALK_RIGHT_FRAME_Y = 11;
+const WALK_RIGHT_FRAME_MAX_X = 9;
+const SHOOT_LEFT_FRAME_Y = 17;
+const SHOOT_LEFT_FRAME_MAX_X = 12;
+const SHOOT_RIGHT_FRAME_Y = 19;
+const SHOOT_RIGHT_FRAME_MAX_X = 12;
+const SHOOTING_FRAME = 8;
+const MAX_Y_VELOCITY = 8;
+const CANVAS_HEIGHT = 800;
+const WALKING_RANGE_IN_PX = 1000;
+const WALKING_SPEED_IN_PX = 1.75;
+const SHOOTING_RANGE_IN_PX = 500;
+const SHOOTING_SPEED = 1000/16;
+const FRAME = {source_frame_width: 64,
+               source_frame_height: 64,
+               dest_frame_width: 71,
+               dest_frame_height: 71
+};
+const ARROW = {speed: 7.5, shift: 36};
+
+/**
+ * @module Boss
+ * A class representing an archer enemy
+ */
+module.exports = exports = Boss;
+
+
+/**
+ * @constructor Boss
+ * Base class for enemies which shoot arrows
+ * @param {Object} startingPosition, object containing x and y coords
+ * @param {Int} tiles, checking wheter an archer is standing on the floor
+ */
+function Boss(startingPosition, tiles) {
+  this.position = startingPosition;
+  this.state = "idle";
+  this.direction = LEFT;
+  this.image = new Image();
+  this.image.src = 'assets/img/Sprite_Sheets/boss/boss.png';
+  this.actualFrame = {
+    x: 0,
+    maxX: IDLE_FRAME_MAX_X,
+    y: WALK_LEFT_FRAME_Y // Y frame is the same for WALK and IDLE state
+  };
+  this.frame = FRAME;
+  this.walkingRange = WALKING_RANGE_IN_PX;
+  this.walkingSpeed = WALKING_SPEED_IN_PX;
+  this.shootingRange = SHOOTING_RANGE_IN_PX;
+  this.shootingSpeed = SHOOTING_SPEED;
+  this.arrowsGenerated = 0;
+  this.arrow = ARROW;
+  this.time = MS_PER_FRAME;
+  // Gravity and other stuff
+  this.floor = 16*35; // May be parametrized
+  this.gravity = {x: 0, y: .1};
+  this.velocity = {x: 0, y: 0};
+  this.tiles = tiles;
+  this.life = 5;
+}
+
+/**
+ * @function setFramesAccordingToState
+ * Updates the archer frames based on his state
+ */
+Boss.prototype.setFramesAccordingToState = function() {
+  switch (this.state) {
+    case "idle":
+    case "falling":
+      if(this.direction == LEFT) {
+        this.actualFrame.y = WALK_LEFT_FRAME_Y;
+        this.actualFrame.x = 0;
+        this.actualFrame.maxX = IDLE_FRAME_MAX_X;
+      } else {
+        this.actualFrame.y = WALK_RIGHT_FRAME_Y;
+        this.actualFrame.x = 0;
+        this.actualFrame.maxX = IDLE_FRAME_MAX_X;
+      }
+      break;
+    case "walking":
+      if(this.direction == LEFT) {
+        this.actualFrame.y = WALK_LEFT_FRAME_Y;
+        this.actualFrame.maxX = WALK_LEFT_FRAME_MAX_X;
+      } else {
+        this.actualFrame.y = WALK_RIGHT_FRAME_Y;
+        this.actualFrame.maxX = WALK_RIGHT_FRAME_MAX_X;
+      }
+      break;
+    case "shooting":
+      if(this.direction == LEFT) {
+        this.actualFrame.y = SHOOT_LEFT_FRAME_Y;
+        this.actualFrame.maxX = SHOOT_LEFT_FRAME_MAX_X;
+      } else {
+        this.actualFrame.y = SHOOT_RIGHT_FRAME_Y;
+        this.actualFrame.maxX = SHOOT_RIGHT_FRAME_MAX_X;
+      }
+      break;
+  }
+}
+
+function onFloor() {
+  var frame = {width: this.frame.dest_frame_width, height: this.frame.dest_frame_height};
+
+  if (this.tiles.isFloor(this.position, frame)) {
+    this.velocity.y = 0;
+    this.floor = this.tiles.getFloor(this.position, frame);
+  }
+  else {
+    if(this.velocity.y < MAX_Y_VELOCITY) this.velocity.y += this.gravity.y;
+    this.floor = CANVAS_HEIGHT - 32;
+  }
+}
+
+/**
+ * @function update
+ * Updates the archer enemy based on the supplied input
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {object} playerPosition, object containing x and y coords
+ * @param {object} entityManager, object which maintains all particles
+ */
+Boss.prototype.update = function(elapsedTime, playerPosition, entityManager) {
+  this.time -= elapsedTime;
+
+  // Check if the enemy has landed on the floor
+  onFloor.call(this);
+
+  if(this.state == "walking" && this.velocity.x < this.walkingSpeed) this.velocity.x += .1;
+  this.position.x += (this.direction == LEFT)? -this.velocity.x : this.velocity.x;
+  this.position.y += this.velocity.y;
+
+  if(this.time > 0) return;
+  this.actualFrame.x = (this.actualFrame.x + 1) % this.actualFrame.maxX;
+
+  if(this.state == "shooting") this.time = this.shootingSpeed;
+  else this.time = MS_PER_FRAME;
+
+  var vector = Vector.subtract(playerPosition, this.position);
+  var magnitude = Vector.magnitude(vector);
+
+  if(vector.x <= 0) this.direction = LEFT;
+  else this.direction = RIGHT;
+
+  // This if-else statement sets proper animation frames only
+  if(magnitude > this.walkingRange || Math.abs(vector.y) > 120) {
+    // Player is far away/above/under the archer, stay idle, change frames only
+    this.state = "idle";
+    this.velocity.x = 0;
+    Boss.prototype.setFramesAccordingToState.call(this);
+  }
+  else if (magnitude > this.shootingRange) {
+    // Player has reached the walking distance of the archer
+    // Boss goes towards the player
+    this.state = "walking";
+    Boss.prototype.setFramesAccordingToState.call(this);
+  } else {
+    // Player has reached the shooting distance of the archer
+    // Boss starts shooting towards the player
+    this.state = "shooting";
+    this.velocity.x = 0;
+    Boss.prototype.setFramesAccordingToState.call(this);
+
+    if(this.actualFrame.x == SHOOTING_FRAME) {
+      var arrowVelocity = {x: (this.direction == LEFT)? -this.arrow.speed : this.arrow.speed, y: 0}
+      entityManager.addParticle(new Arrow({x: this.position.x, y: this.position.y + this.arrow.shift}, arrowVelocity));
+      this.arrowsGenerated = this.arrowsGenerated + 1;
+    }
+  }
+
+}
+
+/**
+ * @function render
+ * Renders the archer enemy in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+Boss.prototype.render = function(elapasedTime, ctx) {
+  ctx.drawImage(this.image,
+                this.actualFrame.x * this.frame.source_frame_width,
+                this.actualFrame.y * this.frame.source_frame_height,
+                this.frame.source_frame_width,
+                this.frame.source_frame_height,
+                this.position.x,
+                this.position.y,
+                this.frame.dest_frame_width,
+                this.frame.dest_frame_height
+  );
+}
+
+},{"../../vector":25,"../archers/arrow":4}],8:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+const Bullets = require('./bullet_pool');
+
+/* Constants */
+const MS_PER_FRAME = 1000/8;
+const IMAGE_WIDTH = 706;
+const IMAGE_HEIGHT = 576;
+
+/**
+ * @module Enemy
+ * A class representing an enemy
+ */
+module.exports = exports = Bird;
+
+/**
+ * @constructor Enemy
+ * Base class for an enemy
+ * @param {object} startingPosition, object containing x and y coords
+ */
+function Bird(startingPosition,startendposition) {
+  this.state = "idle";
+  this.position = startingPosition;
+  this.start = startendposition.start;
+  this.end = startendposition.end - 40;
+  this.gravity = {x: 0, y: 1};
+  this.bulletpool = new Bullets(10);
+  this.floor = 1456;
+  this.velocity = 4;
+  this.img = new Image();
+  this.img.src = 'assets/img/Sprite_Sheets/greenbird.png';
+  this.frame = 0; //Frame on X-axis
+  this.frameHeight = 0; //Frame on Y-axis
+  this.direction = "right";
+  this.time = 0;
+  this.bullet_time = 0;
+}
+
+/**
+ * @function update
+ * Updates the enemy based on the supplied input
+ * @param {DOMHighResTimeStamp} elapedTime
+ * @param {object} playerPosition, object containing x and y coords
+ */
+Bird.prototype.update = function(elapsedTime) {
+  this.bullet_time += elapsedTime;
+  var self = this;
+  if(this.bullet_time >= 2000){
+    this.bulletpool.add(this.position, {x: 0, y:6});
+    this.bullet_time = 0;
+  }
+  this.bulletpool.update(elapsedTime, function(bullet){
+    if(bullet.y >= self.floor) return true;
+    return false;
+  });
+  switch(this.direction){
+    case "right":
+      this.frameHeight = 0;
+      this.time += elapsedTime;
+      if(this.time >= MS_PER_FRAME){
+        this.frame ++;
+        this.time = 0;
+      }
+      if(this.position.x >= this.end){
+        this.direction = "left";
+        this.frame = 0;
+      }
+      else{
+        this.position.x += this.velocity;
+        if(this.frame >= 8) this.frame = 0;
+      }
+      break;
+    case "left":
+      this.frameHeight = 1;
+      this.time += elapsedTime;
+      if(this.time >= MS_PER_FRAME){
+        this.frame ++;
+        this.time = 0;
+      }
+      if(this.position.x <= this.start){
+        this.direction = "right";
+        this.frame = 0;
+      }
+      else{
+        this.position.x -= this.velocity;
+        if(this.frame >= 8) this.frame = 0;
+      }
+      break;
+  }
+}
+
+/**
+ * @function render
+ * Renders the enemy in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+Bird.prototype.render = function(elapasedTime, ctx) {
+  this.bulletpool.render(elapasedTime, ctx);
+  ctx.drawImage(this.img, IMAGE_WIDTH*this.frame, IMAGE_HEIGHT*this.frameHeight, IMAGE_WIDTH, IMAGE_HEIGHT, this.position.x, this.position.y, 40, 32);
+}
+
+},{"./bullet_pool":9}],9:[function(require,module,exports){
+"use strict";
+
+/**
+ * @module BulletPool
+ * A class for managing bullets in-game
+ * We use a Float32Array to hold our bullet info,
+ * as this creates a single memory buffer we can
+ * iterate over, minimizing cache misses.
+ * Values stored are: positionX, positionY, velocityX,
+ * velocityY in that order.
+ */
+module.exports = exports = BulletPool;
+
+/**
+ * @constructor BulletPool
+ * Creates a BulletPool of the specified size
+ * @param {uint} size the maximum number of bullets to exits concurrently
+ */
+function BulletPool(maxSize) {
+  this.pool = new Float32Array(4 * maxSize);
+  this.end = 0;
+  this.max = maxSize;
+  this.bulletRadius = 4;
+}
+
+/**
+ * @function add
+ * Adds a new bullet to the end of the BulletPool.
+ * If there is no room left, no bullet is created.
+ * @param {Vector} position where the bullet begins
+ * @param {Vector} velocity the bullet's velocity
+*/
+BulletPool.prototype.add = function(position, velocity) {
+  if(this.end < this.max) {
+    this.pool[4*this.end] = position.x + 27;//spawn at reasonable spot on bird
+    this.pool[4*this.end+1] = position.y + 10.5;
+    this.pool[4*this.end+2] = velocity.x;
+    this.pool[4*this.end+3] = velocity.y;
+    this.end++;
+  }
+}
+
+/**
+ * @function update
+ * Updates the bullet using its stored velocity, and
+ * calls the callback function passing the transformed
+ * bullet.  If the callback returns true, the bullet is
+ * removed from the pool.
+ * Removed bullets are replaced with the last bullet's values
+ * and the size of the bullet array is reduced, keeping
+ * all live bullets at the front of the array.
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {function} callback called with the bullet's position,
+ * if the return value is true, the bullet is removed from the pool
+ */
+BulletPool.prototype.update = function(elapsedTime, callback) {
+  for(var i = 0; i < this.end; i++){
+    // Move the bullet
+    this.pool[4*i] += this.pool[4*i+2];
+    this.pool[4*i+1] += this.pool[4*i+3];
+    // If a callback was supplied, call it
+    if(callback && callback({
+      x: this.pool[4*i],
+      y: this.pool[4*i+1]
+    })) {
+      // Swap the current and last bullet if we
+      // need to remove the current bullet
+      this.pool[4*i] = this.pool[4*(this.end-1)];
+      this.pool[4*i+1] = this.pool[4*(this.end-1)+1];
+      this.pool[4*i+2] = this.pool[4*(this.end-1)+2];
+      this.pool[4*i+3] = this.pool[4*(this.end-1)+3];
+      // Reduce the total number of bullets by 1
+      this.end--;
+      // Reduce our iterator by 1 so that we update the
+      // freshly swapped bullet.
+      i--;
+    }
+  }
+}
+
+/**
+ * @function render
+ * Renders all bullets in our array.
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+BulletPool.prototype.render = function(elapsedTime, ctx) {
+  // Render the bullets as a single path
+  ctx.save();
+  ctx.beginPath();
+  ctx.fillStyle = "black";
+  for(var i = 0; i < this.end; i++) {
+    ctx.moveTo(this.pool[4*i], this.pool[4*i+1]);
+    ctx.arc(this.pool[4*i], this.pool[4*i+1], this.bulletRadius, 0, 2*Math.PI);
+  }
+  ctx.fill();
+  ctx.restore();
+}
+
+},{}],10:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+
+/* Constants */
+const MS_PER_FRAME = 1000/8;
+const IMAGE_WIDTH = 927;
+const IMAGE_HEIGHT = 633;
+const ABSOLUTE_VELOCITY = 3;
+
+/**
+ * @module Enemy
+ * A class representing an enemy
+ */
+module.exports = exports = Diver;
+
+/**
+ * @constructor Enemy
+ * Base class for an enemy
+ * @param {object} startingPosition, object containing x and y coords
+ */
+function Diver(startingPosition, startendposition) {
+  this.state = "right";
+  this.position = startingPosition;
+  this.flyingHeight = this.position.y;
+  this.start = startendposition.start;
+  this.end = startendposition.end - 40;
+  this.gravity = {x: 0, y: 1};
+  this.floor = 17*35;
+  this.velocity ={ x:ABSOLUTE_VELOCITY, y:0};
+  this.img = new Image();
+  this.img.src = 'assets/img/Sprite_Sheets/diver.png';
+  this.frame = 0; //Frame on X-axis
+  this.frameHeight = 0; //Frame on Y-axis
+  this.time = 0;
+  this.dive_time = 0;
+  this.playerDivePosition;
+  this.diving = false;
+  this.going_up = false;
+  this.width = 40;
+  this.height = 32;
+}
+
+/**
+ * @function update
+ * Updates the enemy based on the supplied input
+ * @param {DOMHighResTimeStamp} elapedTime
+ * @param {object} playerPosition, object containing x and y coords
+ */
+Diver.prototype.update = function(elapsedTime, playerPosition) {
+  this.dive_time += elapsedTime;
+  if(this.dive_time >= 6000 && !this.diving && playerPosition.x < this.end && playerPosition.x > this.start){
+    this.diving = true;
+    this.playerDivePosition = playerPosition;
+    if(this.position.x >= this.playerDivePosition.x) this.state = "left_dive";
+    else this.state = "right_dive";
+    this.getDivingVelocity();
+  }
+  var self = this;
+  switch(this.state){
+    case "right":
+      this.frameHeight = 0;
+      this.time += elapsedTime;
+      if(this.time >= MS_PER_FRAME){
+        this.frame ++;
+        this.time = 0;
+      }
+      if(this.position.x >= this.end){
+        this.state = "left";
+        this.frame = 0;
+      }
+      else{
+        this.position.x += this.velocity.x;
+        if(this.frame >= 8) this.frame = 0;
+      }
+      break;
+    case "left":
+      this.frameHeight = 1;
+      this.time += elapsedTime;
+      if(this.time >= MS_PER_FRAME){
+        this.frame ++;
+        this.time = 0;
+      }
+      if(this.position.x <= this.start){
+        this.state = "right";
+        this.frame = 0;
+      }
+      else{
+        this.position.x -= this.velocity.x;
+        if(this.frame >= 8) this.frame = 0;
+      }
+      break;
+    case "right_dive":
+      this.frameHeight = 0;
+      this.time += elapsedTime;
+      if(this.time >= MS_PER_FRAME){
+        this.frame ++;
+        this.time = 0;
+      }
+      if(this.position.y >= playerPosition.y){
+        this.velocity.x = 0;
+        this.velocity.y = ABSOLUTE_VELOCITY;
+        this.going_up = true;
+      }
+      this.position.x += this.velocity.x;
+      if(this.going_up) this.position.y -= this.velocity.y;
+      else this.position.y += this.velocity.y;
+      if(this.frame >= 8) this.frame = 0;
+      if(this.position.y <= this.flyingHeight){
+        this.velocity.x = ABSOLUTE_VELOCITY;
+        this.velocity.y = 0;
+        this.position.y = this.flyingHeight;
+        this.state = "right";
+        this.dive_time = 0;
+        this.diving = false;
+        this.going_up = false;
+      }
+      break;
+    case "left_dive":
+      this.frameHeight = 1;
+      this.time += elapsedTime;
+      if(this.time >= MS_PER_FRAME){
+        this.frame ++;
+        this.time = 0;
+      }
+      if(this.position.y >= playerPosition.y){
+        this.velocity.x = 0;
+        this.velocity.y = ABSOLUTE_VELOCITY;
+      }
+      this.position.x -= this.velocity.x;
+      this.position.y -= this.velocity.y;
+      if(this.frame >= 8) this.frame = 0;
+      if(this.position.y <= this.flyingHeight){
+        this.velocity.x = ABSOLUTE_VELOCITY;
+        this.velocity.y = 0;
+        this.position.y = this.flyingHeight;
+        this.state = "left";
+        this.dive_time = 0;
+        this.diving = false;
+      }
+      break;
+  }
+}
+
+/**
+ * @function render
+ * Renders the enemy in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+Diver.prototype.render = function(elapasedTime, ctx) {
+  ctx.drawImage(this.img, IMAGE_WIDTH*this.frame, IMAGE_HEIGHT*this.frameHeight, IMAGE_WIDTH, IMAGE_HEIGHT, this.position.x, this.position.y, 40, 32);
+}
+
+Diver.prototype.getDivingVelocity = function(){
+  var x = this.position.x - this.playerDivePosition.x;
+  var y = this.position.y - this.playerDivePosition.y;
+  //var distance = Math.sqrt(Math.pow(x, 2 ) + Math.pow(y, 2 ));
+  var rad = Math.atan(y/x);
+  this.velocity.x = Math.cos(rad) * ABSOLUTE_VELOCITY * 4;
+  this.velocity.y = Math.sin(rad) * ABSOLUTE_VELOCITY * 4;
+}
+
+},{}],11:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+const Mage = require('./mage');
+
+
+/* Constants */
+const WALKING_RANGE_IN_PX = 600;
+const WALKING_SPEED_IN_PX = 1;
+const SHOOTING_RANGE_IN_PX = 350;
+const SHOOTING_SPEED = 1000/13;
+const SPELL_SPEED_IN_PX = 5;
+const SPELL_SHIFT_IN_PX = -37; //Num of pixel to shift the spell down
+const MAXIMUM_SPELLS_GENERATED = 1;
+const FRAME = {source_frame_width: 64,
+               source_frame_height: 64,
+               dest_frame_width: 54,
+               dest_frame_height: 54
+};
+
+/**
+ * @module MasterMage
+ * A class representing an mage enemy
+ */
+module.exports = exports = MasterMage;
+
+
+/**
+ * @constructor MasterMage
+ * Class for an Master mage enemy which shoots spells
+ * @param {Object} startingPosition, object containing x and y coords
+ */
+function MasterMage(startingPosition, tiles) {
+  var image = new Image();
+  image.src = 'assets/img/Sprite_Sheets/mage/master_mage'+ getRandomInt(1,3) +'.png';
+  var spell = {speed: SPELL_SPEED_IN_PX, shift: SPELL_SHIFT_IN_PX};
+  Mage.call(this, startingPosition, image, FRAME, WALKING_RANGE_IN_PX, WALKING_SPEED_IN_PX, SHOOTING_RANGE_IN_PX, SHOOTING_SPEED, spell, tiles, "master");
+}
+
+
+/**
+ * @function update
+ * Updates the Master mage enemy based on the supplied input
+ * @param {DOMHighResTimeStamp} elapedTime
+ * @param {object} playerPosition, object containing x and y coords
+ */
+MasterMage.prototype.update = function(elapsedTime, playerPosition, entityManager) {
+  Mage.prototype.update.call(this, elapsedTime, playerPosition, entityManager);
+  this.spellsGenerated = 0;
+}
+
+/**
+ * @function render
+ * Renders the Master mage enemy in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+MasterMage.prototype.render = function(elapsedTime, ctx) {
+  Mage.prototype.render.call(this, elapsedTime, ctx);
+}
+
+/**
+ * @function getRandomInt
+ * Genrates a random int between the given numbers
+ * @param {min} minimum number that can be generated
+ * @param {max} maximum number that can be generated
+ */
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+},{"./mage":13}],12:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+const Mage = require('./mage');
+
+
+/* Constants */
+const WALKING_RANGE_IN_PX = 600;
+const WALKING_SPEED_IN_PX = 1;
+const SHOOTING_RANGE_IN_PX = 350;
+const SHOOTING_SPEED = 1000/13;
+const SPELL_SPEED_IN_PX = 5;
+const SPELL_SHIFT_IN_PX = 24; //Num of pixel to shift the spell down
+const MAXIMUM_SPELLS_GENERATED = 1;
+const FRAME = {source_frame_width: 64,
+               source_frame_height: 64,
+               dest_frame_width: 54,
+               dest_frame_height: 54
+};
+
+/**
+ * @module BasicMage
+ * A class representing an mage enemy
+ */
+module.exports = exports = BasicMage;
+
+
+/**
+ * @constructor BasicMage
+ * Class for an basic mage enemy which shoots spells
+ * @param {Object} startingPosition, object containing x and y coords
+ */
+function BasicMage(startingPosition, tiles) {
+  var image = new Image();
+  image.src = 'assets/img/Sprite_Sheets/mage/basic_mage'+ getRandomInt(1,9) +'.png';
+  var spell = {speed: SPELL_SPEED_IN_PX, shift: SPELL_SHIFT_IN_PX};
+  Mage.call(this, startingPosition, image, FRAME, WALKING_RANGE_IN_PX, WALKING_SPEED_IN_PX, SHOOTING_RANGE_IN_PX, SHOOTING_SPEED, spell, tiles, "basic");
+}
+
+
+/**
+ * @function update
+ * Updates the basic mage enemy based on the supplied input
+ * @param {DOMHighResTimeStamp} elapedTime
+ * @param {object} playerPosition, object containing x and y coords
+ */
+BasicMage.prototype.update = function(elapsedTime, playerPosition, entityManager) {
+  Mage.prototype.update.call(this, elapsedTime, playerPosition, entityManager);
+  this.spellsGenerated = 0;
+}
+
+/**
+ * @function render
+ * Renders the basic mage enemy in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+BasicMage.prototype.render = function(elapsedTime, ctx) {
+  Mage.prototype.render.call(this, elapsedTime, ctx);
+}
+
+/**
+ * @function getRandomInt
+ * Genrates a random int between the given numbers
+ * @param {min} minimum number that can be generated
+ * @param {max} maximum number that can be generated
+ */
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+},{"./mage":13}],13:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+const Vector = require('../../vector');
+const Spell = require('./spell');
+
+/* Constants */
+const MS_PER_FRAME = 1000/12;
+const LEFT = "l";
+const RIGHT = "r";
+const IDLE_FRAME_MAX_X = 1;
+const WALK_LEFT_FRAME_Y = 9;
+const WALK_LEFT_FRAME_MAX_X = 9;
+const WALK_RIGHT_FRAME_Y = 11;
+const WALK_RIGHT_FRAME_MAX_X = 9;
+const SHOOT_LEFT_FRAME_Y = 1;
+const SHOOT_LEFT_FRAME_MAX_X = 7;
+const SHOOT_RIGHT_FRAME_Y = 3;
+const SHOOT_RIGHT_FRAME_MAX_X = 7;
+const SHOOTING_FRAME = 6;
+const MAX_Y_VELOCITY = 8;
+const CANVAS_HEIGHT = 800;
+const SPELL_CD = 1500;
+
+/**
+ * @module Mage
+ * A class representing a mage enemy
+ */
+module.exports = exports = Mage;
+
+
+/**
+ * @constructor  Mage
+ * Base class for enemies which shoot shoot spells
+ * @param {Object} startingPosition, object containing x and y coords
+ * @param {Image} image, source spritesheet
+ * @param {Object} frame, object containing display properties including width and height
+ * of the source frame (real size in the sprite sheet) and width and height of destination
+ * frame (how it will be really displayed)
+ * @param {Int} walkingRange, distance from which the mage starts moving towards the player
+ * @param {Int} walkingSpeed, speed of walking
+ * @param {Int} shootingRange, distance from which can mage start shooting
+ * @param {Int} shootingSpeed, speed of shooting
+ * @param {Int} spellSpeed, speed of an spell
+ * @param {Int} tiles, checking if a mage is standing on a floor
+ */
+function Mage(startingPosition, image, frame, walkingRange, walkingSpeed, shootingRange, shootingSpeed, spell, tiles, type) {
+  this.position = startingPosition;
+  this.state = "idle";
+  this.direction = LEFT;
+  this.image = image;
+  this.actualFrame = {
+    x: 0,
+    maxX: IDLE_FRAME_MAX_X,
+    y: WALK_LEFT_FRAME_Y // Y frame is the same for WALK and IDLE state
+  };
+  this.frame = frame;
+  this.walkingRange = walkingRange;
+  this.walkingSpeed = walkingSpeed;
+  this.shootingRange = shootingRange;
+  this.shootingSpeed = shootingSpeed;
+  this.spellsGenerated = 0;
+  this.spellCooldown = 0;
+  this.spell = spell;
+  this.time = MS_PER_FRAME;
+  this.type = type;
+  // Gravity and other stuff
+  this.floor = 16*35; // May be parametrized
+  this.gravity = {x: 0, y: .1};
+  this.velocity = {x: 0, y: 0};
+  this.tiles = tiles;
+}
+
+/**
+ * @function setFramesAccordingToState
+ * Updates the mage frames based on his state
+ */
+Mage.prototype.setFramesAccordingToState = function() {
+  switch (this.state) {
+    case "idle":
+    case "falling":
+      if(this.direction == LEFT) {
+        this.actualFrame.y = WALK_LEFT_FRAME_Y;
+        this.actualFrame.x = 0;
+        this.actualFrame.maxX = IDLE_FRAME_MAX_X;
+      } else {
+        this.actualFrame.y = WALK_RIGHT_FRAME_Y;
+        this.actualFrame.x = 0;
+        this.actualFrame.maxX = IDLE_FRAME_MAX_X;
+      }
+      break;
+    case "shooting":
+      if(this.direction == LEFT) {
+        this.actualFrame.y = SHOOT_LEFT_FRAME_Y;
+        this.actualFrame.maxX = SHOOT_LEFT_FRAME_MAX_X;
+      } else {
+        this.actualFrame.y = SHOOT_RIGHT_FRAME_Y;
+        this.actualFrame.maxX = SHOOT_RIGHT_FRAME_MAX_X;
+      }
+      break;
+  }
+}
+
+function onFloor() {
+  var frame = {width: this.frame.dest_frame_width, height: this.frame.dest_frame_height};
+
+  if (this.tiles.isFloor(this.position, frame)) {
+    this.velocity.y = 0;
+    this.floor = this.tiles.getFloor(this.position, frame);
+  }
+  else {
+    if(this.velocity.y < MAX_Y_VELOCITY) this.velocity.y += this.gravity.y;
+    this.floor = CANVAS_HEIGHT - 32;
+  }
+}
+
+/**
+ * @function update
+ * Updates the mage enemy based on the supplied input
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {object} playerPosition, object containing x and y coords
+ * @param {object} entityManager, object which maintains all particles
+ */
+Mage.prototype.update = function(elapsedTime, playerPosition, entityManager) {
+  this.time -= elapsedTime;
+
+  // Check if the enemy has landed or standing on the floor
+  onFloor.call(this);
+  this.position.y += this.velocity.y;
+
+  if(this.time > 0) return;
+  this.actualFrame.x = (this.actualFrame.x + 1) % this.actualFrame.maxX;
+
+  if(this.state == "shooting") this.time = this.shootingSpeed;
+  else this.time = MS_PER_FRAME;
+
+  var vector = Vector.subtract(playerPosition, this.position);
+  var magnitude = Vector.magnitude(vector);
+
+  if(vector.x <= 0) this.direction = LEFT;
+  else this.direction = RIGHT;
+
+  // This if-else statement sets proper animation frames only
+  if(magnitude > this.walkingRange || Math.abs(vector.y) > 120) {
+    // Player is far away/above/under the mage, stay idle, change frames only
+    this.state = "idle";
+    this.velocity.x = 0;
+    Mage.prototype.setFramesAccordingToState.call(this);
+  }
+  else {
+    // Player has reached the shooting distance of the mage
+    // Mage starts shooting towards the player
+    if(this.spellCooldown <= 0)
+    {
+      this.state = "shooting";
+    }
+    else{
+      this.state = "idle";
+    }
+
+    this.velocity.x = 0;
+    Mage.prototype.setFramesAccordingToState.call(this);
+
+    if(this.actualFrame.x == SHOOTING_FRAME && this.spellCooldown <= 0) {
+      var spellVelocity = {x: (this.direction == LEFT)? -this.spell.speed : this.spell.speed, y: 0}
+      entityManager.addParticle(new Spell({x: this.position.x, y: this.position.y + this.spell.shift}, spellVelocity, this.type));
+      this.spellGenerated = this.spellGenerated + 1;
+      this.spellCooldown = SPELL_CD;
+    }
+  }
+  this.spellCooldown -= elapsedTime;
+  //console.log(this.state);
+}
+
+/**
+ * @function render
+ * Renders the mage enemy in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+Mage.prototype.render = function(elapasedTime, ctx) {
+  ctx.drawImage(this.image,
+                this.actualFrame.x * this.frame.source_frame_width,
+                this.actualFrame.y * this.frame.source_frame_height,
+                this.frame.source_frame_width,
+                this.frame.source_frame_height,
+                this.position.x,
+                this.position.y,
+                this.frame.dest_frame_width,
+                this.frame.dest_frame_height
+  );
+}
+
+},{"../../vector":25,"./spell":15}],14:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+const Mage = require('./mage');
+
+
+/* Constants */
+const WALKING_RANGE_IN_PX = 600;
+const WALKING_SPEED_IN_PX = 1;
+const SHOOTING_RANGE_IN_PX = 350;
+const SHOOTING_SPEED = 1000/13;
+const SPELL_SPEED_IN_PX = 5;
+const SPELL_SHIFT_IN_PX = 24; //Num of pixel to shift the spell down
+const MAXIMUM_SPELLS_GENERATED = 1;
+const FRAME = {source_frame_width: 64,
+               source_frame_height: 64,
+               dest_frame_width: 54,
+               dest_frame_height: 54
+};
+
+/**
+ * @module MediumMage
+ * A class representing an mage enemy
+ */
+module.exports = exports = MediumMage;
+
+
+/**
+ * @constructor MediumMage
+ * Class for an medium level mage enemy which shoots spells
+ * @param {Object} startingPosition, object containing x and y coords
+ */
+function MediumMage(startingPosition, tiles) {
+  var image = new Image();
+  image.src = 'assets/img/Sprite_Sheets/mage/medium_mage'+ getRandomInt(1,9) +'.png';
+  var spell = {speed: SPELL_SPEED_IN_PX, shift: SPELL_SHIFT_IN_PX};
+  Mage.call(this, startingPosition, image, FRAME, WALKING_RANGE_IN_PX, WALKING_SPEED_IN_PX, SHOOTING_RANGE_IN_PX, SHOOTING_SPEED, spell, tiles, "med");
+}
+
+
+/**
+ * @function update
+ * Updates the medium mage enemy based on the supplied input
+ * @param {DOMHighResTimeStamp} elapedTime
+ * @param {object} playerPosition, object containing x and y coords
+ */
+MediumMage.prototype.update = function(elapsedTime, playerPosition, entityManager) {
+  Mage.prototype.update.call(this, elapsedTime, playerPosition, entityManager);
+  this.spellsGenerated = 0;
+}
+
+/**
+ * @function render
+ * Renders the medium mage enemy in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+MediumMage.prototype.render = function(elapsedTime, ctx) {
+  Mage.prototype.render.call(this, elapsedTime, ctx);
+}
+
+/**
+ * @function getRandomInt
+ * Genrates a random int between the given numbers
+ * @param {min} minimum number that can be generated
+ * @param {max} maximum number that can be generated
+ */
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+},{"./mage":13}],15:[function(require,module,exports){
+"use strict";
+
+/* Constants */
+const SPELL_LEFT = 0; // Frame position
+const SPELL_RIGHT = 1; // Frame position
+
+/* Classes and Libraries */
+const Particle = require('../../particle');
+
+/**
+ * @module Spell
+ * A class representing a spell
+ */
+module.exports = exports = Spell;
+
+/**
+ * @constructor Spell
+ * Class for a spell fired by mages
+ * @param {postion} starting postion in x, y for spell
+ * @param {velocity} starting velocity off the spell
+ */
+function Spell(position, velocity, type) {
+  var image =  new Image();
+  var frame;
+
+  var actualFrame = {x: (velocity.x < 0)? SPELL_LEFT : SPELL_RIGHT, y: 0};
+  switch(type)
+  {
+    case "basic":
+      frame = {source_frame_width: 18,
+               source_frame_height: 17,
+               dest_frame_width: 18,
+               dest_frame_height: 17};
+       image.src = 'assets/img/Sprite_Sheets/mage/spell_balls.png';
+       break;
+    case "med":
+      frame = {source_frame_width: 42,
+               source_frame_height: 11,
+               dest_frame_width: 105,
+               dest_frame_height: 27};
+               image.src = 'assets/img/Sprite_Sheets/mage/missles.png';
+               break;
+    case "master":
+      frame = {source_frame_width: 42,
+               source_frame_height: 42,
+               dest_frame_width: 126,
+               dest_frame_height: 126};
+               image.src = 'assets/img/Sprite_Sheets/mage/death.png';
+      break;
+
+  }
+
+
+  Particle.call(this, position, velocity, image, actualFrame, frame);
+}
+
+/**
+ * @function update
+ * Updates the spell based on the supplied input
+ * @param {DOMHighResTimeStamp} elapedTime
+ */
+Spell.prototype.update = function(elapsedTime) {
+  Particle.prototype.update.call(this, elapsedTime);
+}
+
+/**
+ * @function render
+ * Renders the spell in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+Spell.prototype.render = function(elapsedTime, ctx) {
+  Particle.prototype.render.call(this, elapsedTime, ctx);
+}
+
+/**
+ * @function getRandomInt
+ * Genrates a random int between the given numbers
+ * @param {min} minimum number that can be generated
+ * @param {max} maximum number that can be generated
+ */
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+},{"../../particle":21}],16:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+
+/* Constants */
+const CANVAS_WIDTH = 1120;
+const CANVAS_HEIGHT = 800;
+const IMAGE_SIZE = 64;
+const MS_PER_FRAME = 1000/8;
+
+const LEFT = "left";
+const RIGHT = "right";
+const WALKING = "walking";
+const STABBING = "stabbing";
+const SWINGING = "swinging";
+
+const WALKING_LEFT_Y = 9;                                                       // the row in orc_basic.png that the class should reference for walking left
+const WALKING_RIGHT_Y = 11;                                                     // row for walking right
+const STABBING_LEFT_Y = 5;                                                      // row for stabbing left
+const STABBING_RIGHT_Y = 7;                                                     // row for stabbing right
+
+const WALKING_MAX_FRAME = 8;                                                    // the number of frames in the complete walking animation
+const STABBING_MAX_FRAME = 7;                                                   // the number of frames in the complete stabbing animation
+
+const SWINGING_LEFT_Y = 13;
+const SWINGING_RIGHT_Y = 15;
+const SWINGING_MAX_FRAME = 5;
+
+
+
+
+/**
+ * @module Enemy
+ * A class representing an enemy
+ */
+module.exports = exports = Melee;
+
+/**
+ * @constructor Enemy
+ * Base class for an enemy
+ * @param {object} startingPosition, object containing x and y coords
+ */
+function Melee(startingPosition, frameX, frameY, img, img2, tiles, height, width, hitboxDiff, type, life, camera) {
+
+  this.state = WALKING;                                                         // state
+  this.position = startingPosition;                                             // position
+  this.gravity = {x: 0, y: .5};                                                 // gravity that affects the melee unit
+  this.velocity = {x: 0, y: 0};                                                 // the unit's x and y velocity
+  this.floor = 640;                                                             // the tile that this unit is standing on
+  this.frame = {x: frameX, y: frameY};                                          // tells where to look in orc_basic.png
+  this.direction = LEFT;                                                        // direction
+  this.time = 0;                                                                // elapsed time since last update
+  this.img = img;                                                               // the image used to display the unit
+  this.img2 = img2;                                                             // a secondary image used in displaying certain enemies
+  this.tiles = tiles;                                                           // tile map used for walking on the ground
+  this.height = height;                                                         // the height of the enemy
+  this.width = width;                                                           // the width of the enemy
+  this.hitboxDiff = hitboxDiff;                                                 // an {x,y} value saying how far off of the position the hitbox should start
+  this.walkingSpeed = 1;
+  this.type = type;
+  if (this.type == "orc_basic") this.walkingSpeed = 2.5;
+  if (this.type == "skeleton_basic") this.walkingSpeed = 1.25;
+  this.feet;
+  this.life = life;
+  this.camera = camera;
+
+}
+
+/**
+ * @function update
+ * Updates the enemy based on the supplied input
+ * @param {DOMHighResTimeStamp} elapedTime
+ * @param {object} playerPosition, object containing x and y coords
+ */
+Melee.prototype.update = function(elapsedTime, playerPosition, entityManager) {
+    if (this.velocity.y >= 0) onFloor(this);
+    if (this.position.x < -80) { this.direction = RIGHT; }
+    if (this.position.x > CANVAS_WIDTH) this.direction = LEFT;
+    switch (this.state) {
+      // this handles the walking case
+      case WALKING:
+        this.time += elapsedTime;
+        // walking left
+        if (this.direction == LEFT) {
+          this.frame.y = WALKING_LEFT_Y;
+          if (this.time >= MS_PER_FRAME) { this.frame.x++; this.time = 0; }
+          if (this.frame.x > WALKING_MAX_FRAME) this.frame.x = 0;
+          this.velocity.x -= .1;
+          if (this.velocity.x <= -this.walkingSpeed) this.velocity.x = -this.walkingSpeed;
+        }
+        // walking right
+        else {
+          this.frame.y = WALKING_RIGHT_Y;
+          if (this.time >= MS_PER_FRAME) { this.frame.x++; this.time = 0; }
+          if (this.frame.x > WALKING_MAX_FRAME) this.frame.x = 0;
+          this.velocity.x += .1;
+          if (this.velocity.x >= this.walkingSpeed) this.velocity.x = this.walkingSpeed;
+        }
+        break;
+      // this handles the stabbing case
+      case STABBING:
+        this.time += elapsedTime;
+        // stabbing left
+        if (this.direction == LEFT) {
+          this.frame.y = STABBING_LEFT_Y;
+          if (this.time >= MS_PER_FRAME) { this.frame.x++; this.time = 0; }
+          if (this.frame.x > STABBING_MAX_FRAME) { this.state = WALKING; this.frame.x = 0; this.frame.y = WALKING_LEFT_Y; }
+          this.velocity.x = 0;
+          if (this.position >= playerPosition.y + 100) {
+            this.state = WALKING;
+            this.frame.x = 0; }
+        }
+        // stabbing right
+        else {
+          this.frame.y = STABBING_RIGHT_Y;
+          if (this.time >= MS_PER_FRAME) { this.frame.x++; this.time = 0; }
+          if (this.frame.x > STABBING_MAX_FRAME) { this.state = WALKING; this.frame.x = 0; this.frame.y = WALKING_RIGHT_Y; }
+          this.velocity.x = 0;
+          if (this.position <= playerPosition.y + 100) {
+            this.state = WALKING;
+            this.frame.x = 0; }
+        }
+        break;
+      case SWINGING:
+        this.time += elapsedTime;
+        // swinging left
+        if (this.direction == LEFT) {
+          this.frame.y = SWINGING_LEFT_Y;
+          // switch frames.. might have to change images
+          if (this.time >= MS_PER_FRAME) {
+            this.frame.x++; this.time = 0; }
+          if (this.frame.x > SWINGING_MAX_FRAME) { this.state = WALKING; this.frame.x = 0; this.frame.y = WALKING_LEFT_Y; }
+          this.velocity.x = 0;
+          if (this.position >= playerPosition.y + 100) {
+            this.state = WALKING;
+            this.frame.x = 0; }
+        }
+        // swinging right
+        if (this.direction == RIGHT) {
+          this.frame.y = SWINGING_RIGHT_Y;
+          // switch frames.. might have to change images
+          if (this.time >= MS_PER_FRAME) {
+            this.frame.x++; this.time = 0; }
+          if (this.frame.x > SWINGING_MAX_FRAME) { this.state = WALKING; this.frame.x = 0; this.frame.y = WALKING_RIGHT_Y; }
+          this.velocity.x = 0;
+          if (this.position <= playerPosition.y + 100) {
+            this.state = WALKING;
+            this.frame.x = 0; }
+        }
+        break;
+  }
+
+  // move the player
+  this.position.x += this.velocity.x;
+  this.position.y += this.velocity.y;
+  if(this.velocity.y < 14 && this.position.x > 0 && this.position.x < CANVAS_WIDTH)
+  {
+   this.velocity.x += this.gravity.x;
+   this.velocity.y += this.gravity.y;
+  }
+
+}
+
+/**
+ * @function render
+ * Renders the enemy in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+Melee.prototype.render = function(elapasedTime, ctx, drawWidth, drawHeight) {
+  ctx.drawImage(this.img, IMAGE_SIZE*this.frame.x, IMAGE_SIZE*this.frame.y, IMAGE_SIZE, IMAGE_SIZE, this.position.x, this.position.y, drawWidth, drawHeight);
+  //ctx.rect(this.position.x + 2.5, this.position.y + 20, 75, 60);
+  //ctx.stroke();
+
+}
+
+// stabs
+Melee.prototype.stab = function() {
+  this.state = STABBING;
+  this.frame.x = 0;
+  this.time = 0;
+}
+
+// swings
+Melee.prototype.swing = function() {
+  this.state = SWINGING;
+  this.frame.x = 0;
+  this.time = 0;
+}
+
+function onFloor(melee) {
+  if (melee.type == "orc_basic") melee.feet = 48;
+  if (melee.type == "skeleton_basic") melee.feet = 42;
+  var frame = {width: melee.width, height: melee.height};
+  var bool = melee.tiles.isFloor(melee.position, frame, melee.camera);
+  if (melee.tiles.isFloor(melee.position, frame, melee.camera)) {
+    melee.velocity.y = 0;
+    melee.floor = (Math.floor((melee.position.y+32)/16) * 16) - 32;
+    //melee.position.y = melee.floor + (52-melee.feet);
+  }
+  else {
+    melee.floor = CANVAS_HEIGHT - 32;
+  }
+}
+
+},{}],17:[function(require,module,exports){
+"use strict";
+
+/* Libraries */
+const Melee = require('./melee.js');
+
+/* Constants */
+
+/**
+ * @module Orc
+ * A class representing an Orc Enemy
+ */
+module.exports = exports = Orc;
+
+/**
+ * @constructor Orc
+ * Class for an orc enemy which shoots arrows
+ * @param {Object} startingPosition, object containing x and y coords
+ */
+function Orc(startingPosition, tiles, camera) {
+  var image = new Image();
+  image.src = 'assets/img/Sprite_Sheets/melee/orc_basic.png';
+  Melee.call(this, startingPosition, 0, 9, image, image, tiles, 80, 80, {x: 10, y: 20}, "orc_basic", 1, camera);
+}
+
+
+/**
+ * @function update
+ * Updates the orc enemy based on the supplied input
+ * @param {DOMHighResTimeStamp} elapedTime
+ * @param {object} playerPosition, object containing x and y coords
+ */
+Orc.prototype.update = function(elapsedTime, playerPosition, entityManager) {
+  Melee.prototype.update.call(this, elapsedTime, playerPosition, entityManager);
+}
+
+/**
+ * @function render
+ * Renders the orc enemy in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+Orc.prototype.render = function(elapsedTime, ctx) {
+  Melee.prototype.render.call(this, elapsedTime, ctx, 80, 80);
+}
+
+Orc.prototype.stab = function() {
+  Melee.prototype.stab.call(this);
+}
+
+},{"./melee.js":16}],18:[function(require,module,exports){
+"use strict";
+
+/* Libraries */
+const Melee = require('./melee.js');
+
+/* Constants */
+
+/**
+ * @module Skelly
+ * A class representing an Orc Enemy
+ */
+module.exports = exports = Skeleton;
+
+/**
+ * @constructor Orc
+ * Class for an orc enemy which shoots arrows
+ * @param {Object} startingPosition, object containing x and y coords
+ */
+function Skeleton(startingPosition, tiles, camera) {
+  var image = new Image();
+  image.src = 'assets/img/Sprite_Sheets/melee/skeleton_dagger_walk.png';
+  var image2 = new Image();
+  image2.src = 'assets/img/Sprite_Sheets/melee/skeleton_dagger_swing.png';
+  Melee.call(this, startingPosition, 0, 9, image, image2, tiles, 75, 75, {x: 8, y: 22}, "skeleton_basic", 3, camera);
+}
+
+
+/**
+ * @function update
+ * Updates the skeleton enemy based on the supplied input
+ * @param {DOMHighResTimeStamp} elapedTime
+ * @param {object} playerPosition, object containing x and y coords
+ */
+Skeleton.prototype.update = function(elapsedTime, playerPosition, entityManager) {
+  Melee.prototype.update.call(this, elapsedTime, playerPosition, entityManager);
+}
+
+/**
+ * @function render
+ * Renders the orc enemy in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+Skeleton.prototype.render = function(elapsedTime, ctx) {
+  Melee.prototype.render.call(this, elapsedTime, ctx, 75, 75);
+}
+
+Skeleton.prototype.swing = function() {
+  Melee.prototype.swing.call(this);
+}
+
+},{"./melee.js":16}],19:[function(require,module,exports){
+"use strict";
+
+const LEFT = "left";
+const RIGHT = "right";
+const WALKING = "walking";
+const STABBING = "stabbing";
+const SWINGING = "swinging";
+
+const Smoke = require('./smoke.js');
+const Vector = require('./vector.js');
+
+/**
+ * @module exports the EntityManager class
+ */
+module.exports = exports = EntityManager;
+
+/**
+ * @constructor EntityManager
+ * Creates a new entity manager object which maintains particles and enemies
+ */
+
+function EntityManager(player) {
+  this.player = player;
+  this.enemies = [];
+  this.birds = [];
+  this.particles = [];
+  this.collectables = [];
+  this.smokes = [];
+}
+/**
+ * @function addEnemy
+ * Adds an enemy, all enemies has to implement update and render method
+ * update method has to take elapsedTime, playerPosition, entityManager.
+ * Parameter entityManager is optional, may be useful when enemy generates a particle
+ * {object} enemy
+ */
+EntityManager.prototype.addEnemy = function(enemy) {
+  this.enemies.push(enemy);
+}
+
+EntityManager.prototype.addBird = function(bird) {
+  this.birds.push(bird);
+}
+
+/**
+ * @function addParticle
+ * Adds a particle
+ * {object} particle
+ */
+EntityManager.prototype.addParticle = function(particle) {
+  this.particles.push(particle);
+}
+
+/**
+ * @function addCollectable
+ * Adds a collectable
+ * {object} collectable
+ */
+EntityManager.prototype.addCollectable = function(collectable) {
+  this.collectables.push(collectable);
+}
+
+// Add a smoke particle to the entityManager
+EntityManager.prototype.addSmoke = function(smoke) {
+  this.smokes.push(smoke);
+}
+
+/**
+ * @function update
+ * Updates all entities, removes invalid particles (TODO)
+ * @param {DOMHighResTimeStamp} elapsedTime indicates
+ * the number of milliseconds passed since the last frame.
+ */
+EntityManager.prototype.update = function(elapsedTime) {
+
+  // Update enemies
+  var self = this;
+  this.enemies.forEach(function(enemy) {
+    enemy.update(elapsedTime, self.player.position, self);
+  });
+
+  this.birds.forEach(function(bird) {
+    bird.update(elapsedTime);
+  });
+
+  // Update particles
+  this.particles.forEach(function(particle) {
+    particle.update(elapsedTime);
+  });
+
+  var removePart = [];
+  var array = this.smokes;
+  // Update smoke particles
+  this.smokes.forEach(function(smoke, i) {
+    smoke.update(elapsedTime);
+    if (smoke.scale == 0) { removePart.unshift(i); }
+  });
+  var s = this.smokes;
+  removePart.forEach(function(i) {
+    s.splice(i, 1);
+  })
+
+  meleeInteractions(this, this.player);
+  collisions.call(this);
+  poopCollisions(this, this.player);
+
+  // Particles vs. Player collision detection
+  this.particles.sort(function(a,b) {
+    return a.x - b.x;
+  });
+  detectPlayerParticleCollisions.call(this);
+
+  // TODO update collectables
+}
+
+/**
+ * @function render
+ * Calls a render method on all entities,
+ * all entites are being rendered into a back buffer.
+ * @param {DOMHighResTimeStamp} elapsedTime indicates
+ * the number of milliseconds passed since the last frame.
+ * @param {CanvasRenderingContext2D} ctx the context to render to
+ */
+EntityManager.prototype.render = function(elapsedTime, ctx) {
+
+  this.enemies.forEach(function(enemy) {
+    enemy.render(elapsedTime, ctx);
+  });
+  this.birds.forEach(function(bird) {
+    bird.render(elapsedTime, ctx);
+  });
+
+  this.particles.forEach(function(particle) {
+    particle.render(elapsedTime, ctx);
+  });
+
+  this.smokes.forEach(function(smoke) {
+    smoke.render(elapsedTime, ctx);
+  });
+
+  // TODO render collectables
+}
+
+function resetPlayer(p) {
+  // player bounces down
+  if (this.player.state == "jump") {
+    smoke.call(this, this.player.position, "green");
+    this.player.velocity.y = 0;
+    this.player.state = "falling";
+  }
+  else {
+    // player bounces to the left
+    if (this.player.position.x < p.x ) {
+      smoke.call(this, {x: (this.player.position.x + 32), y: this.player.position.y}, "green");
+      this.player.position.x -= 20;
+      this.player.velocity.x -= 15;
+    }
+    // player bounces to the right
+    else {
+      smoke.call(this, this.player.position, "green");
+      this.player.position.x += 52;
+      this.player.velocity.x += 15;
+    }
+  }
+  this.particles = [];
+}
+
+function meleeInteractions(me, player) {
+  me.enemies.forEach(function(enemy) {
+    if (enemy.state != "idle" && enemy.position.y + 80 > player.position.y && enemy.position.y < player.position.y + 35) {
+      if (enemy.direction == LEFT && enemy.position.x < player.position.x + 40
+          && enemy.position.x > player.position.x && enemy.state != STABBING && enemy.state != SWINGING) {
+            if (enemy.type == "orc_basic") enemy.stab();
+            if (enemy.type == "skeleton_basic") enemy.swing();
+          }
+      if (enemy.direction == RIGHT && enemy.position.x + 80 > player.position.x
+          && enemy.position.x < player.position.x && enemy.state != STABBING && enemy.state != SWINGING) {
+            if (enemy.type == "orc_basic") enemy.stab();
+            if (enemy.type == "skeleton_basic") enemy.swing();
+          }
+    }
+  });
+}
+
+function poopCollisions(me, player){
+  me.birds.forEach(function(bird){
+    var pool = bird.bulletpool;
+    for(var i = 0; i < pool.end; i ++){
+      if (player.position.x + 32 > pool.pool[4*i] &&
+          player.position.y < pool.pool[i*4+1] + pool.bulletRadius &&
+          player.position.x < pool.pool[4*i] + pool.bulletRadius &&
+          player.position.y + 32 > pool.pool[i*4+1]){
+            resetPlayer.call(me, {x: pool.pool[4*i], y: pool.pool[4*i+1]});
+            break;
+          }
+    }
+  })
+}
+
+function collisions() {
+  var self = this;
+  var player = this.player;
+  this.enemies.forEach(function(enemy, i) {
+    var e_array = self.enemies;
+    var s_array = self.smokes;
+
+    // set hitbox and enemy width/height
+    if (enemy.hitboxDiff == null) enemy.hitboxDiff = {x:0, y:0};
+    if (enemy.height == null || enemy.width == null) {
+      enemy.width = enemy.frame.dest_frame_width;
+      enemy.height = enemy.frame.dest_frame_height;
+    }
+
+    // collision between player and enemy
+    if (player.position.x + 32 > enemy.position.x + enemy.hitboxDiff.x &&
+        player.position.y < enemy.position.y + enemy.height &&
+        player.position.x < enemy.position.x + enemy.width - enemy.hitboxDiff.x &&
+        player.position.y + 32 > enemy.position.y + enemy.hitboxDiff.y) {
+
+          // player is above enemy
+          if (player.position.y + 32 <= enemy.position.y + enemy.hitboxDiff.y + 14) {
+            player.velocity.y = -15; player.state = "jump"; player.time = 0;
+            if (enemy.life == null) enemy.life = 1;
+            enemy.life--;
+            // enemy has 0 life -- dead
+            if (enemy.life == 0) {
+              killEnemy.call(self, i, enemy); }
+            }
+          //player takes hit
+          else { resetPlayer.call(self, enemy.position); player.health -= 20;}
+        }
+  })
+}
+
+// kills an enemy and creates a blood splatter
+function killEnemy(index, enemy) {
+  var e_array = this.enemies;
+  var s_array = this.smokes;
+  var player = this.player;
+
+  // position for the blood splatter
+  var pos = {x: enemy.position.x + enemy.width/2, y: enemy.position.y + enemy.hitboxDiff.y};
+
+  // create blood splatter
+  smoke.call(this, pos, "Red");
+
+  //remove enemy
+  e_array.splice(index, 1);
+
+}
+
+// creates an explosion at a given position with a given color
+// still referencing http://www.gameplaypassion.com/blog/explosion-effect-html5-canvas/ heavily
+function smoke(position, color)
+{
+  var s_array = this.smokes;
+  var minSize = 5;
+  var maxSize = 20;
+  var count = 12;
+  var minSpeed = 60;
+  var maxSpeed = 200;
+  var minScaleSpeed = 1;
+  var maxScaleSpeed = 4;
+  var radius;
+  var position = position;
+
+  for (var angle = 0; angle < 360; angle+=Math.round(360/count))
+  {
+    radius = minSize + Math.random()*(maxSize-minSize);
+    var smoke = new Smoke(position, radius, color);
+    smoke.scaleSpeed = minScaleSpeed + Math.random()*(maxScaleSpeed-minScaleSpeed);
+    var speed = minSpeed + Math.random()*(maxSpeed-minSpeed);
+    smoke.velocityX = speed * Math.cos(angle * Math.PI / 180);
+    smoke.velocityY = speed * Math.sin(angle * Math.PI / 180);
+    s_array.push(smoke);
+
+  }
+}
+
+function detectPlayerParticleCollisions() {
+  var self = this;
+  this.particles.forEach(function(particle, i){
+    // If the distance between player and particle is greater than player width
+    // we can be sure that there is no collision
+    // else we may have a rectangular collision
+    if(Vector.magnitude(Vector.subtract(self.player.position, particle.position)) > self.player.frame.dest_frame_width) return;
+    if(!(
+      self.player.position.x > particle.position.x + particle.frame.dest_frame_width ||
+      self.player.position.x + self.player.frame.dest_frame_width < particle.position.x ||
+      self.player.position.y > particle.position.y + particle.frame.dest_frame_height ||
+      self.player.position.y + self.player.frame.dest_frame_height < particle.position.y
+    )) {
+      // player is above enemy
+      if (self.player.position.y + 32 <= particle.position.y + 10) {
+        self.player.velocity.y = -15; self.player.state = "jump"; self.player.time = 0;
+          removeParticle.call(self, i, particle);
+        }
+      //player takes hit
+      else { resetPlayer.call(self, particle.position); self.player.health -= 20; }
+    }
+
+  });
+}
+
+function removeParticle(index, particle) {
+  console.log(this);
+  var p_array = this.particles;
+
+  p_array.splice(index, 1);
+}
+
+},{"./smoke.js":23,"./vector.js":25}],20:[function(require,module,exports){
+"use strict";
+
+/**
+ * @module exports the Game class
+ */
+module.exports = exports = Game;
+
+/**
+ * @constructor Game
+ * Creates a new game object
+ * @param {canvasDOMElement} screen canvas object to draw into
+ * @param {function} updateFunction function to update the game
+ * @param {function} renderFunction function to render the game
+ */
+function Game(screen, updateFunction, renderFunction) {
+  this.update = updateFunction;
+  this.render = renderFunction;
+
+  // Set up buffers
+  this.frontBuffer = screen;
+  this.frontCtx = screen.getContext('2d');
+  this.backBuffer = document.createElement('canvas');
+  this.backBuffer.width = screen.width;
+  this.backBuffer.height = screen.height;
+  this.backCtx = this.backBuffer.getContext('2d');
+
+  // Start the game loop
+  this.oldTime = performance.now();
+  this.paused = false;
+}
+
+/**
+ * @function pause
+ * Pause or unpause the game
+ * @param {bool} pause true to pause, false to start
+ */
+Game.prototype.pause = function(flag) {
+  this.paused = (flag == true);
+}
+
+/**
+ * @function loop
+ * The main game loop.
+ * @param{time} the current time as a DOMHighResTimeStamp
+ */
+Game.prototype.loop = function(newTime) {
+  var game = this;
+  var elapsedTime = newTime - this.oldTime;
+  this.oldTime = newTime;
+
+  if(!this.paused) this.update(elapsedTime);
+  this.render(elapsedTime, this.frontCtx);
+
+  // Flip the back buffer
+  this.frontCtx.drawImage(this.backBuffer, 0, 0);
+}
+
+},{}],21:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+
+/* Constants */
+const MS_PER_FRAME = 1000/8;
+
+/**
+ * @module Particle
+ * A class representing a particle
+ */
+module.exports = exports = Particle;
+
+/**
+ * @constructor Particle
+ * Base class for a particle (Arrow, Spell, etc.)
+ * @param {object} startingPosition, object containing x and y coords
+ * @param {object} velocity, object containing x and y coords
+ * @param {Image} image, object created by calling new Image()
+ * @param {int} imageSize, frame size of the original image
+ * @param {int} frame, x-position of the frame in the source image
+ * @param {int} frameHeight, y-position of the frame in the source image
+ * @param {int} frameSize, size (width & height) of the destionation frame
+ */
+function Particle(startingPosition, velocity, image, actualFrame, frame) {
+  this.position = startingPosition;
+  this.velocity = velocity;
+  // TODO
+  this.image = image;
+  this.frame = frame;
+  this.actualFrame = actualFrame;
+}
+
+/**
+ * @function update
+ * Updates the particle based on the supplied input
+ * @param {DOMHighResTimeStamp} elapedTime
+ */
+Particle.prototype.update = function(elapsedTime) {
+  //this.time -= elapsedTime;
+
+  //if (this.time > 0) return;
+  //else this.time = MS_PER_FRAME;
+
+  // Move the particle
+  this.position.x += this.velocity.x;
+  this.position.y += this.velocity.y;
+}
+
+/**
+ * @function render
+ * Renders the particle in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+Particle.prototype.render = function(elapasedTime, ctx) {
+  ctx.drawImage(this.image,
+                this.actualFrame.x * this.frame.source_frame_width,
+                this.actualFrame.y * this.frame.source_frame_height,
+                this.frame.source_frame_width,
+                this.frame.source_frame_height,
+                this.position.x,
+                this.position.y,
+                this.frame.dest_frame_width,
+                this.frame.dest_frame_height
+  );
+}
+
+},{}],22:[function(require,module,exports){
+"use strict";
+
+/* Classes and Libraries */
+
+/* Constants */
+const CANVAS_WIDTH = 1120;
+const CANVAS_HEIGHT = 800;
+const MS_PER_FRAME = 1000/8;
+const FRAME = {source_frame_width: 64,
+               source_frame_height: 64,
+               dest_frame_width: 32,
+               dest_frame_height: 32
+};
+/**
+ * @module Player
+ * A class representing a player's helicopter
+ */
+module.exports = exports = Player;
+
+/**
+ * @constructor Player
+ * Creates a player
+ * @param {BulletPool} bullets the bullet pool
+ */
+function Player(x,y) {
+  this.state = "idle";
+  this.position = {x: x, y: y};
+  this.redicule = {x: x, y: y};
+  this.velocity = {x: 0, y: 0};
+  this.gravity = {x: 0, y: 2};
+  this.floor = 640;
+  // TODO
+  this.img = new Image()
+  //this.img.src = 'assets/img/Individual_Img/idle_right.png';
+  this.img.src = 'assets/img/Sprite_Sheets/animations.png';
+
+  this.actualFrame = {x: 1, y: 0}; // Position of an inner frame in sprite sheet`
+  this.frame = FRAME; // Frame properties, width, height of source and destination
+  this.direction = "right";
+  this.time = MS_PER_FRAME;
+
+  this.storedFH = 0;
+  this.storedF = 0;
+  this.previousState = "moving";
+  this.isdead = false;
+  this.health = 100;
+}
+
+/**
+ * @function update
+ * Updates the player based on the supplied input
+ * @param {DOMHighResTimeStamp} elapedTime
+ * @param {Input} input object defining input, must have
+ * boolean properties: up, left, right, down
+ */
+Player.prototype.update = function(elapsedTime, input, tiles) {
+  //if(!this.isdead){
+  switch (this.state) {
+    case "idle":
+      this.time += elapsedTime;
+      // landing
+      if (this.previousState == "falling") {
+        if (this.time <= MS_PER_FRAME) {
+          this.actualFrame.y = 3;
+          this.actualFrame.x = 3;
+        }
+        else if (this.time <= 2*MS_PER_FRAME) {
+          this.actualFrame.y = 3;
+          this.actualFrame.x = 2;
+        }
+        else if (this.time <= 3*MS_PER_FRAME) {
+          this.actualFrame.y = 3;
+          this.actualFrame.x = 1;
+        }
+        else if (this.time <= 4*MS_PER_FRAME) {
+          this.actualFrame.y = 3;
+          this.actualFrame.x = 0;
+        }
+        else {
+          this.actualFrame.y = this.storedFH;
+          this.actualFrame.x = this.storedF;
+        }
+      }
+      else if (this.previousState == "moving") {
+        if (this.time <= MS_PER_FRAME) {
+          this.actualFrame.y = this.storedF+1; //bit of a hack here, i can explain in class
+          this.actualFrame.x = 0;
+        }
+        else {
+          this.actualFrame.y = this.storedFH;
+          this.actualFrame.x = this.storedF;
+        }
+      }
+
+
+      // set the velocity
+      //this.velocity.x = 0;
+      if(input.left) {
+        this.direction = "left";
+        this.actualFrame.y = 1;
+        this.actualFrame.x = 0;
+        this.time = 0;
+        this.state = "moving";
+      }
+      else if(input.right) {
+        this.direction = "right";
+        this.actualFrame.y = 2;
+        this.actualFrame.x = 0;
+        this.time = 0;
+        this.state = "moving";
+      }
+      else {
+        this.velocity.x = 0;
+      }
+      break;
+    case "moving":
+      // set the velocity
+      //this.velocity.x = 0;
+      this.time += elapsedTime;
+      if(input.left) {
+        this.actualFrame.y = 1;
+        if(this.velocity.x > -8) {
+          this.velocity.x -= 1;
+        }
+        if (this.time >= MS_PER_FRAME && this.time <= 2*MS_PER_FRAME) { this.actualFrame.x = 0;}
+        if (this.time >= 2*MS_PER_FRAME) { this.actualFrame.x = 1; }
+      }
+      else if(input.right) {
+        this.actualFrame.y = 2;
+        if(this.velocity.x < 8) {
+          this.velocity.x += 1;
+        }
+        if (this.time >= MS_PER_FRAME && this.time <= 2*MS_PER_FRAME) { this.actualFrame.x = 0;}
+        if (this.time >= 2*MS_PER_FRAME) { this.actualFrame.x = 1; }
+      }
+      else {
+        this.time = 0;
+        this.storedFH = 0;
+        this.previousState = "moving";
+        if (this.direction == "right") { this.storedF = 1;}
+        else this.storedF = 0;
+        this.state = "idle";
+      }
+      break;
+    case "falling":
+      // set the velocity
+      //this.velocity.x = 0;
+      if (this.position.y == this.floor) {
+        this.storedFH = 0;
+        if (this.direction == "left") this.storedF = 0;
+        else this.storedF = 1;
+        this.time = 0;
+        this.state = "idle";
+      }
+      else if(input.left) {
+        if(this.velocity.x > -8) {
+          this.velocity.x -= 1;
+        }
+      }
+      else if(input.right) {
+        if(this.velocity.x < 8) {
+          this.velocity.x += 1;
+        }
+      }
+      else {
+        this.velocity.x = 0;
+      }
+      break;
+    case "jump":
+      this.time += elapsedTime;
+      if (this.time <= MS_PER_FRAME) {
+        this.actualFrame.y = 3;
+        this.actualFrame.x = 0;
+      }
+      else if (this.time <= 2*MS_PER_FRAME) {
+        this.actualFrame.y = 3;
+        this.actualFrame.x = 1;
+      }
+      else if (this.time <= 3*MS_PER_FRAME) {
+        this.actualFrame.y = 3;
+        this.actualFrame.x = 2;
+      }
+      else if (this.time <= 4*MS_PER_FRAME) {
+        this.actualFrame.y = 3;
+        this.actualFrame.x = 3;
+      }
+      else {
+        this.actualFrame.y = 3;
+        this.actualFrame.x = 4;
+      }
+
+      if (this.velocity.y > 0) {
+        this.actualFrame.y = 3;
+        this.actualFrame.x = 4;
+        this.state = "falling";
+      }
+      else if(input.left) {
+        if(this.velocity.x > -8) {
+          this.velocity.x -= 1;
+        }
+      }
+      else if(input.right) {
+        if(this.velocity.x < 8) {
+          this.velocity.x += 1;
+        }
+      }
+      else {
+        this.velocity.x = 0;
+      }
+      break;
+    }
+
+
+  // move the player
+  if(tiles.killDepth(this.position.y)) this.isDead = true;
+  else if(tiles.notBelow(this.position.y))this.position.x += this.velocity.x;
+  this.position.y += this.velocity.y;
+  if(this.velocity.y < 14)
+  {
+    this.velocity.x += this.gravity.x;
+    this.velocity.y += this.gravity.y;
+  }
+  // keep player on screen
+  if(this.position.x < 160) this.position.x = 160;
+  if(this.position.x > 16*700-160-32) this.position.x = 16*700-160-32;
+  if(this.position.y < 0) this.position.y = 0;
+  if(this.position.y > this.floor) this.position.y = this.floor;
+//}
+}
+
+/**
+ * @function render
+ * Renders the player helicopter in world coordinates
+ * @param {DOMHighResTimeStamp} elapsedTime
+ * @param {CanvasRenderingContext2D} ctx
+ */
+Player.prototype.render = function(elapasedTime, ctx) {
+  //ctx.drawImage(this.img, this.redicule.x, this.redicule.y, 32, 32);
+  //if(!this.isdead){
+    ctx.drawImage(this.img,
+                  this.actualFrame.x * this.frame.source_frame_width,
+                  this.actualFrame.y * this.frame.source_frame_height,
+                  this.frame.source_frame_width,
+                  this.frame.source_frame_height,
+                  this.redicule.x,
+                  this.redicule.y,
+                  this.frame.dest_frame_width,
+                  this.frame.dest_frame_height
+    );
+  //}
+
+}
+
+Player.prototype.jump = function() {
+  if (this.position.y == this.floor) {
+    this.time = 0;
+    this.state = "jump";
+    this.velocity.y = -30;
+  }
+}
+
+},{}],23:[function(require,module,exports){
+"use strict"
+
+module.exports = exports = Smoke;
+
+// based heavily on code from a helpful site --
+// http://www.gameplaypassion.com/blog/explosion-effect-html5-canvas/
+function Smoke (p, r, c)
+{
+  this.scale = 1.0;
+  this.position = {
+    x: p.x,
+    y: p.y
+  };
+  this.radius = r;
+  this.color = c;
+  this.velocityX = 0;
+  this.velocityXY = 0;
+  this.scaleSpeed = 0.5;
+
+}
+Smoke.prototype.update = function(time)
+{
+  //shrink
+  this.scale -= this.scaleSpeed * time / 1000;
+
+  if (this.scale <= 0) { this.scale = 0; }
+
+  //exploding
+  this.position.x += this.velocityX * time/1000;
+  this.position.y += this.velocityY * time/1000;
+}
+
+Smoke.prototype.render = function(time, ctx)
+{
+  // translating ctx to the particle coords
+  ctx.save();
+  ctx.translate(this.position.x, this.position.y);
+  ctx.scale(this.scale, this.scale);
+
+  ctx.rect(this.position.x, this.position.y, 50, 50);
+  //drawing circles
+  ctx.beginPath();
+  ctx.arc(0,0, this.radius, 0, Math.PI*2, true);
+  ctx.closePath();
+
+  ctx.fillStyle = this.color;
+  ctx.fill();
+
+  ctx.restore();
+}
+
+},{}],24:[function(require,module,exports){
 module.exports = exports = Tiles;
 
 function Tiles() {
@@ -96,3 +3027,91 @@ Tiles.prototype.isFloor = function(position, frame, camera){
 Tiles.prototype.getFloor = function(position, frame) {
 	return (Math.floor((position.y + frame.height)/16) * 16) - frame.height;
 }
+
+},{}],25:[function(require,module,exports){
+"use strict";
+
+module.exports = exports = {
+  add: add,
+  subtract: subtract,
+  rotate: rotate,
+  dotProduct: dotProduct,
+  magnitude: magnitude,
+  normalize: normalize,
+  perpendicular: perpendicular,
+  findAxes: findAxes,
+  project: project
+}
+
+/**
+ * Stands for matrix multiplication  {x,y} * {{cos phi, -sin phi}, {sin phi, cos phi}}
+ */
+function add(a, b) {
+  return {
+    x: a.x + b.x,
+    y: a.y + b.y
+  }
+}
+
+function subtract(a, b) {
+  return {
+    x: a.x - b.x,
+    y: a.y - b.y
+  }
+}
+
+function rotate(a, angle) {
+  return {
+    x: a.x * Math.cos(angle) - a.y * Math.sin(angle),
+    y: a.x * Math.sin(angle) + a.y * Math.cos(angle)
+  }
+}
+
+function dotProduct(a, b) {
+  return a.x * b.x + a.y * b.y;
+}
+
+function magnitude(a) {
+  return Math.sqrt(a.x * a.x + a.y * a.y);
+}
+
+function normalize(a) {
+  var mag = magnitude(a);
+  return {
+    x: a.x / mag,
+    y: a.y / mag
+  };
+}
+
+function perpendicular(a) {
+  return {
+    x: -a.y,
+    y: a.x
+  }
+}
+
+function findAxes(shape) {
+  var axes = [];
+  shape.vertices.forEach(function(p1, i){
+    // find the adjacent vertex
+    var p2 = (shape.vertices.length == i+1) ? shape.vertices[0] : shape.vertices[i+1];
+    var edge = subtract(p2, p1);
+    var perp = perpendicular(edge);
+    var normal = normalize(perp);
+    axes.push(normal);
+  });
+  return axes;
+}
+
+function project(shape, axis){
+  var min = dotProduct(shape.vertices[0], axis);
+  var max = min;
+  for(var i = 1; i < shape.vertices.length; i++){
+    var p = dotProduct(shape.vertices[i], axis);
+    if(p < min) min = p;
+    else if(p > max) max = p;
+  }
+  return {min: min, max: max};
+}
+
+},{}]},{},[1]);

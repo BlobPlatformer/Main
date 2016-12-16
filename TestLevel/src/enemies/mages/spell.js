@@ -21,26 +21,27 @@ module.exports = exports = Spell;
  */
 function Spell(position, velocity, type) {
   var image =  new Image();
+  var frame;
 
   var actualFrame = {x: (velocity.x < 0)? SPELL_LEFT : SPELL_RIGHT, y: 0};
   switch(type)
   {
     case "basic":
-      var frame = {source_frame_width: 18,
+      frame = {source_frame_width: 18,
                source_frame_height: 17,
                dest_frame_width: 18,
                dest_frame_height: 17};
        image.src = 'assets/img/Sprite_Sheets/mage/spell_balls.png';
        break;
     case "med":
-      var frame = {source_frame_width: 42,
+      frame = {source_frame_width: 42,
                source_frame_height: 11,
                dest_frame_width: 105,
                dest_frame_height: 27};
                image.src = 'assets/img/Sprite_Sheets/mage/missles.png';
                break;
     case "master":
-      var frame = {source_frame_width: 42,
+      frame = {source_frame_width: 42,
                source_frame_height: 42,
                dest_frame_width: 126,
                dest_frame_height: 126};
@@ -50,7 +51,7 @@ function Spell(position, velocity, type) {
   }
 
 
-  Particle.call(this, position, velocity, image, actualFrame, frame, "spell");
+  Particle.call(this, position, velocity, image, actualFrame, frame);
 }
 
 /**

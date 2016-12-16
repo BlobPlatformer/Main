@@ -10,7 +10,7 @@ const WALKING_SPEED_IN_PX = 1;
 const SHOOTING_RANGE_IN_PX = 350;
 const SHOOTING_SPEED = 1000/13;
 const SPELL_SPEED_IN_PX = 5;
-const SPELL_SHIFT_IN_PX = 24; //Num of pixel to shift the spell down
+const SPELL_SHIFT_IN_PX = -37; //Num of pixel to shift the spell down
 const MAXIMUM_SPELLS_GENERATED = 1;
 const FRAME = {source_frame_width: 64,
                source_frame_height: 64,

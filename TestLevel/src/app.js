@@ -220,6 +220,7 @@ function render(elapsedTime, ctx) {
       ctx.save();
       ctx.clearRect(0,0,canvas.width,canvas.height);
       renderBackgrounds(elapsedTime, ctx);
+
       /*var row;
       var col;
       for(var i=0; i<map.length; i++) {
@@ -237,6 +238,7 @@ function render(elapsedTime, ctx) {
       renderWorld(elapsedTime, ctx);
       player.render(elapsedTime, ctx);
       ctx.restore();
+      renderGUI(elapsedTime, ctx);
       break;
     case "level":
       renderLevelSelection(elapsedTime, ctx);
@@ -296,6 +298,36 @@ function renderLevelSelection(elapsedTime, ctx) {
       );
 }
 
-function renderGUI() {
+function renderGUI(elapsedTime, ctx) {
 
+    var color; //color of health bar
+    var barHeight = 750;
+    ctx.fillText("Health", 60, barHeight+10);
+    //draw HP background
+    ctx.save();
+    ctx.fillStyle="grey";
+    ctx.fillRect(100, barHeight, 104, 12);
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle="black";
+    ctx.fillRect(102, barHeight+2, 100, 8);
+    ctx.restore();
+
+    //daw HP forground
+    ctx.save();
+
+    if (60 <= player.health){
+        color = "#4CAF50";//green
+    }
+    else if (30 <= player.health && player.health < 60){
+        color = "yellow";
+    }
+    else{
+        color = "red";
+    }
+    ctx.fillStyle=color;
+    ctx.strokeStyle=color;
+    ctx.fillRect(102, barHeight+2, player.health, 8);
+    ctx.restore();
 }
